@@ -1,0 +1,17 @@
+{
+  "name": "parkingbusiness-payment-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sends signed payment confirmations to your API, the way the payment provider does.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "send": "node send-webhook.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "axios": "0.21.1"
+  }
+}
