@@ -18,12 +18,12 @@ For each step: implement or document its agreed scope, verify acceptance criteri
 
 **Outcome:** A minimal Express service with a working PostgreSQL development and isolated test setup, ready for later feature work.
 
-- [ ] **Runtime and package:** Initialize the backend in `garage/`, pin or document the chosen runtime and dependencies, and configure TypeScript. Dependency: verify availability of the intended Node version. Verify installation and type-checking from a fresh setup.
-- [ ] **HTTP foundation:** Separate Express app construction from server startup, add minimal shared error handling, and make HTTP testing straightforward. Prepare the HTTP setup to support raw request bytes for later webhook verification without implementing the webhook. Verify app startup, an HTTP test, and sensible error handling.
-- [ ] **Configuration:** Validate required configuration at startup, provide an example environment file and prevent secrets from being committed. Verify missing or invalid configuration fails clearly and example configuration contains no secrets.
-- [ ] **Database and migrations:** Configure Compose PostgreSQL, `pg`, Drizzle and Drizzle Kit; establish a repeatable migration workflow without prematurely deciding the business schema. Verify connection and migration workflow against an isolated test database.
-- [ ] **Tests and tooling:** Configure Vitest, linting, type-checking and package scripts. Create a dedicated disposable PostgreSQL test database; do not use the development database as a test target. Verify a basic database integration test and HTTP test.
-- [ ] **Initial documentation:** Replace the placeholder README incrementally with verified fresh-clone setup, configuration and commands. Do not document proposed commands as already working.
+- [x] **Runtime and package:** Initialize the backend in `garage/`, pin or document the chosen runtime and dependencies, and configure TypeScript. Dependency: verify availability of the intended Node version. Verify installation and type-checking from a fresh setup.
+- [x] **HTTP foundation:** Separate Express app construction from server startup, add minimal shared error handling, and make HTTP testing straightforward. Prepare the HTTP setup to support raw request bytes for later webhook verification without implementing the webhook. Verify app startup, an HTTP test, and sensible error handling.
+- [x] **Configuration:** Validate required configuration at startup, provide an example environment file and prevent secrets from being committed. Verify missing or invalid configuration fails clearly and example configuration contains no secrets.
+- [x] **Database and migrations:** Configure Compose PostgreSQL, `pg`, Drizzle and Drizzle Kit; establish a repeatable migration workflow without prematurely deciding the business schema. Verify connection and migration workflow against an isolated test database.
+- [x] **Tests and tooling:** Configure Vitest, linting, type-checking and package scripts. Create a dedicated disposable PostgreSQL test database; do not use the development database as a test target. Verify a basic database integration test and HTTP test.
+- [x] **Initial documentation:** Replace the placeholder README incrementally with verified fresh-clone setup, configuration and commands. Do not document proposed commands as already working.
 
 **Review/done:** Fresh setup can start the service and database, run the migration workflow, lint, type-check and run tests; test isolation and secret handling are checked. Independent review findings are resolved or recorded. No check-in, checkout, payment or occupancy behavior is implemented in this step.
 
@@ -31,9 +31,9 @@ For each step: implement or document its agreed scope, verify acceptance criteri
 
 **Outcome:** Repeatable checks and an honest agent-work record.
 
-- [ ] Add CI for lint, tests and dependency audit as required by PB-01, plus type-checking and PostgreSQL integration tests where configured. Exercise the workflow and record failures or audit findings; consider the supplied simulator's dependencies without silently altering supplied materials.
-- [ ] Check agent instructions and reusable procedures against actual commands; actually use at least one reusable procedure, as required by the brief.
-- [ ] Maintain dated `JOURNAL.md` entries with real decisions, rationale, mistakes and detection, tools and models used when known. Record time and cost only when known; never invent them.
+- [x] Add CI for lint, tests and dependency audit as required by PB-01, plus type-checking and PostgreSQL integration tests where configured. Exercise the workflow and record failures or audit findings; consider the supplied simulator's dependencies without silently altering supplied materials.
+- [x] Check agent instructions and reusable procedures against actual commands; actually use at least one reusable procedure, as required by the brief.
+- [x] Maintain dated `JOURNAL.md` entries with real decisions, rationale, mistakes and detection, tools and models used when known. Record time and cost only when known; never invent them.
 
 **Dependencies:** Foundation commands and test isolation. Some configuration can proceed alongside step 1. **Review/done:** CI runs real checks, reusable-procedure use is demonstrated, and the journal is factual.
 

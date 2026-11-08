@@ -60,3 +60,99 @@
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git and patch tool. Time and cost: unknown.
 - Moved the existing audit matrix into a separate GitHub Actions workflow with the same triggers and failure behavior, leaving the backend checks independent. Updated the README. Mistakes: none known.
 - Verification: inspected the workflow changes and ran `git diff --check`; GitHub-hosted execution remains unverified. No audit or application test was rerun because the audit commands and application code did not change.
+
+## 2026-11-08 — Cross-feature design discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and glob, patch tool. Time and cost: unknown.
+- Reviewed the plan, brief, integration notes and backend package and structure to begin an interactive architecture and decision discussion. Flagged pricing and payment-authentication conflicts and proposed options; no new business decisions confirmed yet.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Exit flow discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user prefers gates to interact only with our system and to use documented retries for payment status; chose a 15-minute payment-to-exit grace period, recalculating the charge and collecting the unpaid difference afterwards. The user does not want departure confirmation assumed and wants its absence documented as a vendor-system weakness. The implications of the documented retry contract and space release remain open for clarification.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Gate retry and occupancy discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose the pilot approximation of releasing occupancy when the gate opens, assuming departure, and suggested non-2xx pending-payment responses with 2xx for opening. The gate notes do not confirm handling of non-2xx bodies or retries after an error, nor an actual gate-open event; these remain integration questions. A 15-minute grace period was agreed in principle; its application to free sessions and exact boundaries remain open.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Pilot gate assumptions
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed that free resident sessions can exit immediately and that expired paid sessions with no additional amount due may exit. For the pilot, the user defines the gate as the terminal, the barrier as the physical mechanism, assumes the gate handles payment-required 402 responses and the barrier acts on 200 responses, and proposes a forced retry when the gate notices payment. These are vendor assumptions, not verified integration behavior; payment detection and retry semantics remain to be clarified.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Payment-triggered gate recheck
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed the pilot assumption that the terminal is part of the gate equipment and can trigger a payment recheck; the system should also accommodate a separate terminal. A payment-triggered recheck uses a new request ID, while retries of the same attempt reuse its ID. Provider confirmation remains authoritative; the supplied notes do not explicitly establish the trigger or separate-terminal integration.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Resident eligibility decisions
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose resident spaces for either vehicle type, a resident licence-plate registry limited to 50 registrations, verification of a resident button selection against the registry, and rejection of duplicate active plates and residency mismatches. Registration operations, capacity guarantees and error handling remain open; a registration count alone does not guarantee a space under every lifecycle or concurrency condition.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Resident administration and selection
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose a resident-management API protected by a generated API key, rejection of unregistered resident claims, and prevention of removal during an active resident session. Registered residents choosing visitor should still receive a free resident space; the resulting purpose of the button and checkout mismatch behavior need discussion.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Resident session authority
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose the recorded session rather than checkout's `isResident` value as authoritative, replacing the earlier mismatch-rejection proposal. The user wants an administrative plate list without additional personal details. The timing of resident entitlement and the meaning of “plate = visitor” remain to be clarified.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Resident registry scope
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed the resident registry contains plates without person profiles, and a visitor session remains paid if its plate is registered after check-in. This frozen entitlement is to be documented as a decision and system limitation.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Integration authentication decisions
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose separate gate keys with permissions restricted by gate type, a separate resident-administration key, and rejection of unsigned legacy payment calls with the compatibility impact documented. Signed webhook authentication follows the provider's raw-body HMAC requirement.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Pricing boundaries discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user rejected restarting a billable hour at Amsterdam midnight, confirmed elapsed-time started-hour boundaries and integer-cent calculations, and accepted starting the payment grace period when our system records a valid successful webhook, including the risk of delayed delivery. Allocation of an hour spanning midnight to a daily cap remains open.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Midnight tariff attribution
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed that check-in-anchored started-hour blocks are assigned to the Amsterdam calendar day on which each block starts, for applying daily caps. Midnight does not itself restart a chargeable hour. Pricing boundaries will be documented explicitly in the feature spec.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Retry and payment scope
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user clarified that the same gate request ID may transition from 402 to 2xx, with a new ID after failed attempts, and that payment resolution is outside the application's scope and delegated to the provider. The meaning of one successful transaction per ID and handling multiple payment IDs for a session need clarification.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Payment-attempt clarification
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed that one session may have multiple successful payment IDs for separate outstanding amounts, while duplicate delivery of one payment ID must not be counted twice. The pilot assumes the provider does not successfully charge the same outstanding balance twice; refunds and payment resolution remain outside application scope.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Pilot architecture document
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git status and diff check, patch tool. Time and cost: unknown.
+- At the user's request, documented the agreed pilot architecture and flow in `docs/architecture.md`, including diagrams, pricing examples, security decisions, vendor assumptions, limitations and unresolved feature-spec details. No application code or tests changed.
+- Mistakes: none known. Documentation was checked for whitespace errors; application tests were not run for this planning-only change.
+
+## 2026-11-08 — Pricing and departure decisions
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose started-hour charging rather than prorating, and requested explicit departure confirmation before freeing a space, with an additional charge for a significant payment-to-exit delay. The delay threshold and charging mechanics remain open. Clarified that provider webhooks notify the backend, while the gate notification mechanism is unspecified.
+- Mistakes: none known. No application changes or tests run.
