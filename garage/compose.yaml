@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: garage_dev
+      POSTGRES_DB: garage_dev
+      POSTGRES_PASSWORD: ${DEV_DB_PASSWORD:?Set DEV_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - garage-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U garage_dev -d garage_dev"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  test-db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: garage_test
+      POSTGRES_DB: garage_test
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:?Set TEST_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:55433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U garage_test -d garage_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+volumes:
+  garage-dev-data:
