@@ -50,6 +50,18 @@ parser before any JSON parser and authenticate the original bytes.
 
 ## Verification and migrations
 
+The reusable agent checklist is [docs/verification-procedure.md](docs/verification-procedure.md).
+The GitHub Actions workflow is configured to run backend checks and PostgreSQL
+integration tests on pushes and pull requests; a hosted run is still unverified.
+The separate dependency-audit workflow runs full `npm audit` jobs for both `garage/` and the
+supplied `simulator/`; known vulnerabilities cause those jobs to fail until fixed.
+CI does not fetch the private shared-context submodule because its checks do not
+need it; people and agents following the shared instructions still need access.
+The supplied simulator currently has two high-severity dependency findings;
+avoid using it with untrusted destinations or data and review its dependencies
+before relying on it. Its supplied files have not been changed.
+The documented risk acceptance and precautions are in [SECURITY.md](SECURITY.md).
+
 Commands below run from `garage/`. Before migrating or testing, ensure the
 containers and mapped ports are the intended isolated local instances; never
 point tests or disposable operations at the development or production database.

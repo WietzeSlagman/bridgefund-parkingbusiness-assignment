@@ -41,3 +41,22 @@
 - Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, shell, npm, ESLint, TypeScript, Prettier, Vitest and patch tool. Time and cost: unknown.
 - Re-reviewed the three earlier findings and subsequent tooling configuration. Ran non-mutating lint, type-check, formatting and unit checks; did not run the database-migrating integration test without independently verifying its disposable target. Reported results and remaining limitations in the review response.
 - Mistakes: none known.
+
+## 2026-11-08 — Delivery guardrails
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, npm, Docker, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Added a reusable verification procedure and followed it for this change: inspected scripts and working tree, verified the existing test container's loopback mapping, temporary storage and database identity, ran checks and reviewed changes. The shared planning workflow and project instructions were also inspected; interacting with an agent alone does not demonstrate use of a created procedure.
+- Added GitHub Actions checks with a separate disposable PostgreSQL service and full, independent audits of backend and supplied simulator dependencies. Local npm install, lint, format check, type-check, build, 16 backend tests and 9 simulator tests passed. The backend audit failed with 11 moderate development-tool findings; the simulator audit failed with two high findings. Left supplied dependencies unchanged. The hosted workflow and independent review remain outstanding; actionlint was unavailable.
+- Mistake: initially inserted this entry in the middle of the journal; a heading check exposed it and I moved it to the end. A hosted CI run and fresh CI container setup were not exercised locally, so the local checks are not evidence that the hosted workflow passed.
+
+## 2026-11-08 — Dependency risk record
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git and patch tool. Time and cost: unknown.
+- At the user's request, documented acceptance of the previously observed backend and simulator audit findings in `SECURITY.md`, with simulator use restricted to trusted local testing and test-only secrets. Kept the full audit jobs failing visibly: recording a risk acceptance is not the same as fixing or suppressing a vulnerability. Reviewed the simulator's actual URL, signing and HTTP behavior to inform precautions.
+- Mistakes: none known. This documentation-only change did not rerun dependency audits or tests; it records the earlier audit results, which may change.
+
+## 2026-11-08 — Separate audit workflow
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git and patch tool. Time and cost: unknown.
+- Moved the existing audit matrix into a separate GitHub Actions workflow with the same triggers and failure behavior, leaving the backend checks independent. Updated the README. Mistakes: none known.
+- Verification: inspected the workflow changes and ran `git diff --check`; GitHub-hosted execution remains unverified. No audit or application test was rerun because the audit commands and application code did not change.

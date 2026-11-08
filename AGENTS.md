@@ -28,6 +28,8 @@ commands or dependencies exist.
 - Never commit secrets or use the development database as a disposable test
   database. Document configuration and verification for a fresh clone.
 - Do not invent journal entries, model usage, time spent, or costs.
+- For backend and delivery-tooling changes, use `docs/verification-procedure.md`
+  to guide checks and report the actual results.
 
 ## OpenCode Agents
 

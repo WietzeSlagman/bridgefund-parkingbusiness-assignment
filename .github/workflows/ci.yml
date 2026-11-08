@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: garage
+    env:
+      DEV_DB_PASSWORD: ci-unused-development-password
+      TEST_DB_PASSWORD: ci-disposable-test-password
+      TEST_DATABASE_URL: postgresql://garage_test:ci-disposable-test-password@localhost:55433/garage_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: garage/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Start isolated test database
+        run: docker compose -p parkingbusiness-ci up -d --wait test-db
+      - name: Verify test database identity
+        run: docker compose -p parkingbusiness-ci exec -T test-db psql -U garage_test -d garage_test -c 'select current_database(), current_user;'
+      - run: npm test
