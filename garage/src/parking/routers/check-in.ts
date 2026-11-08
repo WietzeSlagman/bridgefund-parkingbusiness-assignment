@@ -2,7 +2,8 @@ import express, { type Request, type Response } from "express";
 import type pg from "pg";
 import { createAuthenticator, requireRole, type Identity } from "../auth.js";
 import { parseCheckInRequest } from "../helpers/check-in-request.js";
-import { Deadline } from "../helpers/deadline.js";
+import { CHECK_IN_BUDGET_MS, type Deadline } from "../helpers/deadline.js";
+import { httpDeadline, sendWithinDeadline } from "../helpers/deadline-http.js";
 import { failure, requireJson, send } from "../helpers/http.js";
 import { requestIdSchema } from "../helpers/schemas.js";
 import { checkIn } from "../services/check-in.js";
@@ -14,23 +15,7 @@ export function checkInRouter(
   const router = express.Router();
   router.post(
     "/check-in",
-    (req, res, next) => {
-      const deadline = new Deadline();
-      res.locals.deadline = deadline;
-      const timer = setTimeout(() => {
-        deadline.cancel();
-        send(res, failure(503, "SERVICE_UNAVAILABLE"));
-        req.resume();
-      }, deadline.remaining());
-      res.once("finish", () => clearTimeout(timer));
-      res.once("close", () => {
-        clearTimeout(timer);
-        if (!res.writableFinished) {
-          deadline.cancel();
-        }
-      });
-      next();
-    },
+    httpDeadline(CHECK_IN_BUDGET_MS),
     requireRole(auth, "entrance"),
     requireJson,
     async (req: Request, res: Response) => {
@@ -58,12 +43,7 @@ export function checkInRouter(
       const gateId = (res.locals.identity as Identity & { gateId: string })
         .gateId;
       const result = await checkIn(pool, gateId, id, body, deadline);
-      if (deadline.expired()) {
-        deadline.cancel();
-        send(res, failure(503, "SERVICE_UNAVAILABLE"));
-      } else {
-        send(res, result);
-      }
+      sendWithinDeadline(res, result);
     },
   );
   return router;

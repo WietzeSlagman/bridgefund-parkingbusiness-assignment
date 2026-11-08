@@ -1,12 +1,17 @@
 import { performance } from "node:perf_hooks";
 
 export const CHECK_IN_BUDGET_MS = 1500;
+export const RESIDENT_BUDGET_MS = 1500;
 
 /** Per-attempt monotonic deadline. Cancellation closes an acquired DB connection. */
 export class Deadline {
-  private readonly end = performance.now() + CHECK_IN_BUDGET_MS;
+  private readonly end: number;
   private cancelled = false;
   private listeners = new Set<() => void>();
+
+  constructor(readonly budgetMs: number) {
+    this.end = performance.now() + budgetMs;
+  }
 
   remaining(): number {
     return Math.max(0, Math.floor(this.end - performance.now()));

@@ -3,7 +3,7 @@ import {
   transaction as runTransaction,
   TransactionFailure,
 } from "../db/transaction.js";
-import { CHECK_IN_BUDGET_MS, type Deadline } from "./helpers/deadline.js";
+import type { Deadline } from "./helpers/deadline.js";
 import { failure, type Result } from "./helpers/http.js";
 
 export async function transaction(
@@ -18,7 +18,7 @@ export async function transaction(
     return await runTransaction(
       pool,
       work,
-      deadline && { deadline, initialTimeoutMs: CHECK_IN_BUDGET_MS },
+      deadline && { deadline, initialTimeoutMs: deadline.budgetMs },
     );
   } catch (failureError) {
     if (!(failureError instanceof TransactionFailure)) {

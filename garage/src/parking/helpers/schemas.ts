@@ -19,14 +19,10 @@ export const checkInSchema = z.strictObject({
 // Check the shape before values to preserve error precedence.
 export const residentBodyShape = z
   .strictObject({
-    buildingCode: z.unknown(),
+    buildingCode: z.unknown().optional(),
     licensePlate: z.unknown(),
   })
-  .refine(
-    (body) =>
-      Object.hasOwn(body, "buildingCode") &&
-      Object.hasOwn(body, "licensePlate"),
-  );
+  .refine((body) => Object.hasOwn(body, "licensePlate"));
 
 export const residentQuerySchema = z.strictObject({ buildingCode: z.string() });
 export const requestIdSchema = z.uuid();

@@ -342,3 +342,35 @@
 - Replaced the shape-only request ID regex with Zod's UUID validator. Added valid, malformed, invalid-version and invalid-variant cases, including authenticated HTTP 400 assertions and confirmation that invalid IDs do not access the database. Preserved existing work; no independent review was performed.
 - Verified the test container's Compose service, image, loopback port, tmpfs storage, absence of mounts and database/user identity. Targeted tests passed; the full suite passed (78 tests), as did lint, format check, type-check and build.
 - Mistake: the first full-suite run failed database authentication because the shell password variable was not exported to the URL-encoding subprocess; exported it and reran successfully. No credentials were printed.
+
+## 2026-11-08 — PB-03 independent review after extraction
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Reviewed committed PB-03, service extraction, validation, retries and deadline handling. Ran non-mutating checks and unit tests; did not run database tests because disposable database identity was not independently established. Findings and verification limits are in the review response.
+- Mistakes: none known. The required journal entry was appended despite the user's read-only request; application, test and specification files were not changed.
+
+## 2026-11-08 — PB-03 handoff status refresh
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git status, history and diff, and patch tool. Time and cost: unknown.
+- Updated plan, spec handoff and README status to distinguish the committed PB-03 implementation from the open independent-review findings and verification gaps; preserved the existing journal changes. Recorded the remaining PB-04–PB-06 spec-first checkpoints without changing feature requirements.
+- No application or database tests were run for this documentation-only change. The supplied independent-review results distinguish passing non-database checks from database tests not independently run.
+
+## 2026-11-08 — PB-03 review finding fixes
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, Docker, PostgreSQL, patch tool, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Bounded resident operations using the existing deadline and transaction disposal mechanism; fixed missing building validation and added PostgreSQL fault-injection and stalled-admin recovery tests. Admin commit outcomes may be uncertain; operators must inspect the registry before retrying. Preserved existing documentation changes and updated the handoff after verification; no independent review of these fixes was performed.
+- Verified the test container's Compose service, image, loopback port, tmpfs storage, lack of mounts, and database/user identity. Full suite passed (81 tests), as did lint, formatting, type-check and build on Node 26.13.0.
+- Mistake: the first full suite exposed that Zod still required the unknown building field after removing the explicit refinement; made it optional and reran successfully.
+
+## 2026-11-08 — Independent review of PB-03 fixes
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Reviewed the uncommitted resident deadline, validation and request-record fault-test changes against the PB-03 contract and transaction implementation. Ran non-database checks and unit tests; did not run database tests because the test target was not independently verified as isolated.
+- Mistakes: none known. The required journal entry was appended despite the user's read-only request; no application, test, spec or configuration files were changed.
+
+## 2026-11-08 — Shared HTTP deadlines
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker, PostgreSQL, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Extracted shared HTTP deadline middleware and deadline-aware response sending, with explicit check-in and resident route budgets; transaction initialization uses the selected deadline's budget. Preserved existing validation behavior and uncertain-commit recovery semantics. The missing-both-fields error precedence remains unresolved.
+- Verified the isolated test container's Compose identity, loopback mapping, tmpfs storage, absence of mounts and database/user identity. Full suite passed (84 tests); lint, formatting, type-check and build passed. Independent review was not performed.
+- Mistakes: initial lint rejected an unbound mock method, and a new expiry test initially spied on the global clock rather than the imported `node:perf_hooks` clock. Fixed both and reran the full checks.

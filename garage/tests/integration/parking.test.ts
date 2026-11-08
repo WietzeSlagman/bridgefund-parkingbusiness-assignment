@@ -98,10 +98,22 @@ describe("PB-03 database integration", () => {
       [{ buildingCode: "unknown", licensePlate: "車" }, "INVALID_BUILDING"],
       [{ buildingCode: building, licensePlate: 123 }, "INVALID_REQUEST"],
       [{ buildingCode: "unknown" }, "INVALID_REQUEST"],
+      [{ licensePlate: "A1" }, "INVALID_BUILDING"],
+      [{ licensePlate: "A1", extra: 1 }, "INVALID_REQUEST"],
     ] as const) {
       const response = await post(payload);
       expect(response.status).toBe(400);
       expect(body(response).error.code).toBe(code);
+    }
+    for (const [key, status] of [
+      ["", 401],
+      ["test-entry-1", 403],
+    ] as const) {
+      const response = await request(app)
+        .post("/admin/residents")
+        .set("Authorization", `Bearer ${key}`)
+        .send({ licensePlate: "A1" });
+      expect(response.status).toBe(status);
     }
     for (const [query, code] of [
       [{ buildingCode: "unknown", extra: "x" }, "INVALID_BUILDING"],
@@ -694,6 +706,109 @@ describe("PB-03 database integration", () => {
     }
     expect((await checkin("test-entry-1", id, p)).status).toBe(201);
   });
+  it.each(["insert", "update"] as const)(
+    "rolls back a gate request %s storage failure and safely retries",
+    async (operation) => {
+      const p = plate();
+      const id = randomUUID();
+      const suffix = randomUUID().replaceAll("-", "");
+      const fn = `test_fault_${suffix}`;
+      const trigger = `test_fault_trigger_${suffix}`;
+      await pool.query(
+        `create function ${fn}() returns trigger language plpgsql as $$ begin if NEW.plate = '${p}' then raise exception 'injected storage failure'; end if; return NEW; end $$`,
+      );
+      try {
+        await pool.query(
+          `create trigger ${trigger} before ${operation} on gate_requests for each row execute function ${fn}()`,
+        );
+        const response = await checkin("test-entry-1", id, p);
+        expect(response.status).toBe(500);
+        expect(body(response).error.code).toBe("INTERNAL_ERROR");
+        expect(
+          (
+            await pool.query(
+              "select 1 from gate_requests where gate_id=$1 and request_id=$2",
+              ["entrance-1", id],
+            )
+          ).rowCount,
+        ).toBe(0);
+        expect(
+          (
+            await pool.query(
+              "select 1 from sessions where building_code=$1 and plate=$2",
+              [building, p],
+            )
+          ).rowCount,
+        ).toBe(0);
+        await pool.query(`drop trigger ${trigger} on gate_requests`);
+        const retry = await checkin("test-entry-1", id, p);
+        expect(retry.status).toBe(201);
+        expect((await checkin("test-entry-1", id, p)).body).toEqual(retry.body);
+        expect(
+          (
+            await pool.query(
+              "select 1 from sessions where building_code=$1 and plate=$2 and active",
+              [building, p],
+            )
+          ).rowCount,
+        ).toBe(1);
+      } finally {
+        await pool.query(`drop trigger if exists ${trigger} on gate_requests`);
+        await pool.query(`drop function if exists ${fn}()`);
+      }
+    },
+  );
+  it("disposes a stalled admin connection after acquiring the building lock and allows gate recovery", async () => {
+    const p = plate();
+    let locked!: () => void;
+    const acquired = new Promise<void>((resolve) => {
+      locked = resolve;
+    });
+    const delayedPool = {
+      on: pool.on.bind(pool),
+      async connect() {
+        const client = await pool.connect();
+        return new Proxy(client, {
+          get(target, property) {
+            if (property === "query") {
+              return async (sql: string, values?: unknown[]) => {
+                const result = await target.query(sql, values);
+                if (sql.startsWith("SELECT code FROM buildings")) {
+                  locked();
+                  await new Promise((resolve) => setTimeout(resolve, 2200));
+                }
+                return result;
+              };
+            }
+            if (property === "release") {
+              return target.release.bind(target);
+            }
+            return Reflect.get(target, property) as unknown;
+          },
+        });
+      },
+    } as unknown as pg.Pool;
+    const admin = request(createApp({ pool: delayedPool, config }))
+      .post("/admin/residents")
+      .set("Authorization", "Bearer test-admin")
+      .send({ buildingCode: building, licensePlate: p })
+      .then((r) => r);
+    await acquired;
+    const result = await admin;
+    expect(result.status).toBe(503);
+    const gate = await checkin("test-entry-1", randomUUID(), p);
+    expect(gate.status).toBe(201);
+    expect(body(gate).parkingSpaceId).toBeGreaterThan(50);
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    expect(
+      (
+        await pool.query(
+          "select 1 from residents where building_code=$1 and plate=$2",
+          [building, p],
+        )
+      ).rowCount,
+    ).toBe(0);
+  }, 8000);
   it.each(["allocation", "commit"] as const)(
     "fails closed during a stalled %s and recovers with the same ID",
     async (stage) => {
