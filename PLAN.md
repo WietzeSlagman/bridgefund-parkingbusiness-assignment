@@ -2,11 +2,11 @@
 
 ## Purpose and status
 
-This is the agreed overarching sequence for the ParkingBusiness assignment. It is a planning artifact, not an implementation specification. Feature-specific tasks and contracts belong in the corresponding specs. Status at agreement: planning; no backend implementation is implied by this document.
+This is the agreed overarching sequence for the ParkingBusiness assignment. It is a planning artifact, not an implementation specification. Feature-specific tasks and contracts belong in the corresponding specs. The foundation and PB-03 implementation exist; the latest review findings have fixes awaiting independent review.
 
 Sources: `BRIEF.md`, `docs/gates.md`, `docs/payment-provider.md`, and `AGENTS.md`. The pilot building is `PB-AMS-2M8D`; future buildings may have different layouts and tariffs. Preserve the original assignment history and supplied integration material.
 
-The agreed direction is to establish the server, database, isolated tests and tooling first, without implementing parking business behavior or prematurely fixing its schema. Resolve cross-feature decisions after scaffolding and before the affected implementation. The intended stack is TypeScript, Node.js 26, Express, PostgreSQL, Drizzle ORM, `pg`, Drizzle Kit, Docker Compose and Vitest. The repository currently has no configured backend dependencies; the locally observed Node version was 24.14.0. Verify the intended runtime and actual commands during setup.
+The agreed sequence established the server, database, isolated tests and tooling before parking business behavior. Resolve cross-feature decisions before the affected implementation. The configured stack is TypeScript, Node.js 26, Express, PostgreSQL, Drizzle ORM, `pg`, Drizzle Kit, Docker Compose and Vitest; see README for setup and commands.
 
 ## Working checkpoints
 
@@ -55,12 +55,14 @@ For each step: implement or document its agreed scope, verify acceptance criteri
 
 **Outcome:** An authenticated entrance gate receives an eligible space and session.
 
-- [ ] Write and review `specs/pb-03-check-in.md`: API and errors, eligibility, plate normalization, duplicate sessions, gate authentication, retries and concurrent allocation. Dependencies: relevant step 3 decisions.
-- [ ] Obtain user authorization and commit the spec before implementation.
-- [ ] Implement allocation and persistence with database-enforced protection against duplicate space assignment.
+- [x] Write and review `specs/pb-03-check-in.md`: API and errors, eligibility, plate normalization, duplicate sessions, gate authentication, retries and concurrent allocation. Dependencies: relevant step 3 decisions.
+- [x] Obtain user authorization and commit the spec before implementation. The spec commit `8a0891a` precedes implementation commit `564e3f9`.
+- [x] Implement allocation and persistence with database-enforced protection against duplicate space assignment.
 - [ ] Verify authentication, validation, capacity, plate rules, conflicting request IDs and overlapping requests against PostgreSQL.
 
 **Review/done:** Spec, implementation and tests agree; concurrent successful requests cannot allocate the same space and retry behavior is demonstrated.
+
+**Current handoff:** PB-03 is not deployment-ready. Fixes for the latest three independent-review findings (admin lock bounds, missing-building error, and request-record storage fault coverage) passed the developer's PostgreSQL-backed suite and configured checks, but have not been independently reviewed. The previous independent review did not independently run database tests. PB-04–PB-06 each still require their own spec-first commit before implementation.
 
 ## 5. PB-04 — Checkout and pricing
 

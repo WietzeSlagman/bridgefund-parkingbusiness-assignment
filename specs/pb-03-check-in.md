@@ -24,7 +24,7 @@ PB-03 (`BRIEF.md`): an entrance gate checks a vehicle in, starts a parking sessi
 
 - `BRIEF.md` PB-02/PB-03 and pilot layout; `docs/gates.md` for gate IDs, request IDs and plate examples.
 - `docs/architecture.md` for agreed eligibility, credentials and lifecycle direction; `docs/payment-provider.md` for downstream context only.
-- Existing Express/Drizzle/PostgreSQL foundation and `docs/verification-procedure.md`. Current business schema is empty; no parking endpoints are implemented.
+- Existing Express/Drizzle/PostgreSQL foundation and `docs/verification-procedure.md`. PB-03 parking schema and endpoints have since been implemented; see Handoff Status for open review findings.
 - PB-04–PB-06 will specify checkout, release, payment and occupancy separately. PB-03 stores enough information for later work without implementing those features.
 
 ## Decisions, Assumptions, and Open Questions
@@ -178,4 +178,4 @@ Admin requests with malformed values return `400 INVALID_REQUEST`, unauthorized/
 
 ## Handoff Status
 
-**Ready for review of the latest revisions and the spec-first commit checkpoint.** The 1,500 ms budget and physical-space-number mapping are confirmed pilot decisions. Safe deployment requires verification of the gate's event-correlation capability. PB-03–PB-06 specs must be committed before their corresponding implementations; request explicit user authorization for the PB-03 spec commit. No implementation should start until the spec is agreed and that checkpoint is complete.
+The PB-03 spec was committed in `8a0891a` before implementation in `564e3f9`. The implementation tasks above have corresponding code and tests, but remain unchecked pending independent review and verification of all acceptance criteria. Fixes for the latest three independent-review findings (admin lock bounds, missing-building error, and request-record storage fault coverage) passed the developer's PostgreSQL-backed suite and configured checks; they have not had further independent review. The previous independent review did not independently run database tests. PB-03 is not deployment-ready. The 1,500 ms budget and physical-space-number mapping are confirmed pilot decisions; safe deployment requires verification of the gate's event-correlation capability. PB-04–PB-06 still require their own specs committed before their corresponding implementations, with explicit user authorization for commits.

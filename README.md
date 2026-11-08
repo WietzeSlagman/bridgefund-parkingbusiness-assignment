@@ -1,13 +1,20 @@
 # ParkingBusiness assignment
 
-PB-03 check-in and resident administration are under development and are **not
-ready for deployment**: implementation and verification are incomplete. Checkout,
-payment and occupancy endpoints do not exist. See [PLAN.md](PLAN.md) and [BRIEF.md](BRIEF.md).
+PB-03 check-in and resident administration are implemented but are **not ready
+for deployment**. The three latest independent-review findings have fixes and
+PostgreSQL-backed regression tests; the fixes have not had a further independent
+review. The latest independent review did not independently run database tests.
+Checkout, payment and occupancy endpoints do not exist; PB-04–PB-06 each require
+a spec committed before implementation. See [PLAN.md](PLAN.md) and [BRIEF.md](BRIEF.md).
 The per-attempt timer closes an acquired database connection on timeout and
 prevents a late success response. If COMMIT was already sent, its outcome may be
 unknown: retry the same gate request ID to recover the durable result. Timers
 cannot guarantee scheduling or network delivery, and the gate must correlate
 responses to its current vehicle event.
+Resident administration also uses a 1,500 ms transaction deadline, including
+database statement, lock and idle bounds and connection disposal on cancellation.
+An admin COMMIT interrupted after being sent can have an unknown outcome: inspect
+the registry before retrying, since admin requests do not have gate request IDs.
 
 ## Local setup
 
