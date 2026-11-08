@@ -4,7 +4,7 @@
 
 This is a cross-feature design for the pilot, not an implementation specification or a description of completed business functionality. It records decisions made during planning on 2026-11-08, alongside assumptions, limitations and unresolved details. `BRIEF.md`, `docs/gates.md` and `docs/payment-provider.md` remain the supplied sources; this document does not change what the vendors have actually promised.
 
-The foundation currently provides an Express app, configuration and database tooling; its business schema is empty and its parking endpoints are not implemented. The configured stack is TypeScript, Node 26, Express, PostgreSQL, Drizzle ORM and `pg`, with Vitest and Docker Compose for testing and local development. This architecture builds on that foundation rather than introducing additional services.
+The current backend implements PB-03 check-in and resident administration with a parking schema; checkout, payment webhook and occupancy are not implemented. The configured stack is TypeScript, Node 26, Express, PostgreSQL, Drizzle ORM and `pg`, with Vitest and Docker Compose for testing and local development. This architecture builds on that foundation rather than introducing additional services.
 
 **Spec-first checkpoint:** PB-03 through PB-06 each require a reviewed feature spec in `specs/` committed before the corresponding implementation. Ask for explicit authorization before committing. The architecture does not replace those specs; substantive changes to a feature spec also need the spec-first checkpoint.
 
@@ -76,8 +76,9 @@ The brief and gate notes do not fully specify how a gate receives an asynchronou
 
 - The gate is the terminal/controller; the barrier is the physical mechanism. A `200` exit authorization causes the gate to open the barrier.
 - The gate can handle `402 Payment Required`, display the outstanding amount and initiate payment. The brief instead illustrates a `200` checkout response with the amount; this is an intentional proposed contract difference.
-- The payment terminal is part of the gate equipment and can trigger a subsequent garage API recheck after a payment interaction, including after the original retries are exhausted. An interaction is not itself proof of payment.
-- A later payment-triggered attempt uses a new request ID. Transport retries reuse the same ID and body. The same ID may move from `402` to `200` after a valid confirmation; it is not an immutable replay of the first `402`.
+- The payment terminal is part of the gate equipment and can recheck the garage API after a `402`, including after the original timeout retries are exhausted. An interaction is not itself proof of payment.
+- Rechecks for the same checkout interaction reuse its request ID and body until `200`. The ID may move from `402` to `200` after valid confirmation; it is not an immutable replay of the first `402`. The pilot assumes a new request ID after grace expires without authorization, or for a later interaction after abandonment; a new ID recalculates. How the gate learns grace timing is unverified. Provider payment IDs are separate and deduplicate payment attempts.
+- Repeated `402`s for the same quote do not automatically initiate another payment; the driver can retry after a failed attempt. A new quote for an additional balance can initiate another payment. The backend does not know a payment is in progress; terminal behavior is an unverified pilot assumption.
 - If a recheck precedes provider confirmation, the gate must be able to recheck again. Exact trigger and timing require vendor agreement.
 
 ```mermaid
@@ -91,17 +92,19 @@ sequenceDiagram
   alt Nothing due
     A->>D: Authorize exit and release recorded space atomically
     A-->>G: 200: exit authorized
-    G->>G: Open barrier; departure assumed
+    G->>G: Open barrier, departure assumed
   else Payment required
     A-->>G: 402: amount due
     G->>G: Display amount and initiate payment
+    G->>P: Payment interaction (protocol not specified)
     P->>A: Signed payment webhook
-    A->>D: Verify and record attempt idempotently
-    G->>A: Recheck (same ID or new attempt ID)
+    A->>A: Verify webhook signature and validate event
+    A->>D: Record confirmed payment result idempotently
+    G->>A: Recheck (same checkout ID)
     alt Valid payment recorded and exit permitted
       A->>D: Authorize exit and release recorded space atomically
       A-->>G: 200: exit authorized
-      G->>G: Open barrier; departure assumed
+      G->>G: Open barrier, departure assumed
     else Still outstanding
       A-->>G: 402: amount due
     end
@@ -129,7 +132,7 @@ Chargeable hour blocks are anchored to check-in, measured in actual elapsed time
 
 The 15-minute exit window begins when our system first records a valid successful payment confirmation, using server time; duplicate delivery cannot extend it. The provider body contains no payment timestamp, so delayed delivery can give the customer extra time after actual payment. The user accepts this service-provider risk. If the window expires, recalculate the charge and subtract successfully recorded payments. If nothing further is due, authorize exit; otherwise require the difference. A new successful additional payment starts a new window. Free resident sessions can exit without a payment window.
 
-The exact 15-minute boundary, pricing snapshot/quote behavior while payment is in flight, and how to validate an incoming amount against a changing balance remain open for PB-04/PB-05. These must be decided together before the relevant implementation. Once exit is authorized, an actual delayed departure cannot be detected by this pilot.
+The grace window is inclusive at its start and exclusive at its end. Checkout evaluates the session and its recorded payment: within grace it can authorize; after grace it recalculates, authorizes if nothing is due, or creates a new fixed additional-balance quote until its confirmation. A covered quote and an uncovered top-up are distinct durable states, so repeated rechecks do not repeatedly recalculate an unpaid top-up. The pilot assumes a new checkout request ID for a later interaction after grace, but the session and payment state, not an old gate ID, decide what is due. The terminal is assumed to abandon unfinished interactions in a reasonable time and use a new ID for a later interaction; the backend cannot enforce a quote lifetime without a signal or timeout. Amount validation and ambiguous late confirmations remain PB-05 work and documented pilot limitations. Once exit is authorized, an actual delayed departure cannot be detected by this pilot.
 
 ## Authentication, retries and failure boundaries
 
@@ -144,6 +147,6 @@ The exact 15-minute boundary, pricing snapshot/quote behavior while payment is i
 
 1. Confirm the assumed gate contract with the vendor for a real deployment, including `402` handling, display, recheck trigger, timing, and the absence or future availability of a departure event. Determine how a separate terminal triggers a recheck.
 2. Specify the resident admin API and concurrency-safe registry operations, alongside PB-03 eligibility and allocation. Decide how it is introduced in the implementation sequence.
-3. Complete PB-03–PB-06 specs with API contracts, errors, assumptions, state transitions and implementation tasks. In particular resolve the 15-minute boundary, in-flight quote and payment-attempt semantics, request ID scope and retention, and recovery/operational handling.
+3. Complete PB-04–PB-06 specs with API contracts, errors, assumptions, state transitions and implementation tasks. In particular specify payment-attempt validation and operational handling in PB-05 while preserving the documented PB-04 quote, grace and request-ID decisions.
 4. Verify allocation and registry limits, retries and overlapping events against an isolated PostgreSQL test database; test raw-byte HMAC verification, unauthorized callers, amount/currency checks, duplicate and out-of-order events, and pricing at hourly, midnight, cap and daylight-saving boundaries.
 5. Honor each feature's spec-before-implementation commit checkpoint. This document is provisional until the remaining decisions are reflected in the relevant specs; it is not authorization to implement unspecified behavior.

@@ -374,3 +374,147 @@
 - Extracted shared HTTP deadline middleware and deadline-aware response sending, with explicit check-in and resident route budgets; transaction initialization uses the selected deadline's budget. Preserved existing validation behavior and uncertain-commit recovery semantics. The missing-both-fields error precedence remains unresolved.
 - Verified the isolated test container's Compose identity, loopback mapping, tmpfs storage, absence of mounts and database/user identity. Full suite passed (84 tests); lint, formatting, type-check and build passed. Independent review was not performed.
 - Mistakes: initial lint rejected an unbound mock method, and a new expiry test initially spied on the global clock rather than the imported `node:perf_hooks` clock. Fixed both and reran the full checks.
+
+## 2026-11-08 — PB-04 planning started
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git status and submodule status, exploration agents and patch tool. Time and cost: unknown.
+- Inspected the shared workflow, requirements, architecture and actual PB-03 implementation. Identified payment-quote, grace-boundary and checkout retry decisions for discussion, plus unverified gate capabilities; no new feature decisions confirmed and no spec drafted yet.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-08 — PB-04 initial decisions
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose a fixed payable quote while payment is in flight, the exclusive 15-minute grace-period end, authorization replay only for the successful request ID, and PB-04 sequencing without a public payment shortcut before PB-05. Quote expiry and payment correlation remain to be resolved.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — PB-04 quote clarification
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user accepted keeping an unpaid quote without automatic expiry or replacement and questioned the proposed payment-correlation anomaly. Rechecked the provider payload and delivery notes; the existing pilot assumes the same outstanding balance is not successfully charged twice.
+- Mistake: presented ambiguous late successful payments too broadly without clearly distinguishing the agreed no-double-charge assumption from exceptional provider behavior. No application changes or tests run.
+
+## 2026-11-08 — PB-04 quoted payment window
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed that payment of a valid €5 quote suffices during the applicable payment window even if the running charge grows to €10. The intended duration of the pre-payment window needs clarification alongside the previously accepted non-expiring quote.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Terminal abandonment assumption
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user clarified that the quote should protect an active terminal payment across a tariff boundary, not remain usable for hours, and requested documentation of the assumption that terminals abandon payment after a short time. Terminal timeout and safe treatment of delayed confirmations remain unverified.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — PB-04 provisional draft
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: planning subagent, repository read and patch tool. Time and cost: unknown.
+- The user requested a simpler assignment-sized approach and deferral of detailed abandonment and delayed-payment reconciliation. Drafted `specs/pb-04-check-out.md` with the agreed pricing and checkout decisions, proposed contract and explicit pilot limitations; the draft awaits review and the spec-first commit.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — PB-04 independent specification review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git and patch tool. Time and cost: unknown.
+- Reviewed the staged checkout draft against the brief, integration notes and PB-03 implementation, focusing on quote renewal, grace and replay. Reported specification gaps and deferred pilot risks; no tests or database operations were run.
+- Mistakes: none known. The required journal entry was appended despite the user's request for no file modifications; no application, test or specification files were changed.
+
+## 2026-11-08 — PB-04 review discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git and independent review agent, patch tool. Time and cost: unknown.
+- At the user's request, sought an independent readiness review. It identified unresolved ordinary checkout-recheck and superseded-quote behavior; no new product decisions confirmed. No application changes or tests run.
+- The reviewer appended its journal entry despite my instruction not to edit files; preserved it. Its reference to a user's no-modification request should instead refer to my instruction to the reviewer.
+
+## 2026-11-08 — Simplified pilot payment flow
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, simulator exploration, Git status and patch tool. Time and cost: unknown.
+- The user accepted the simpler pilot without a payment-start API or pending state, replacing the prior pending-state proposal. Documented prompt final provider outcomes and gate rechecks as unverified assumptions, independent gate and payment IDs, and the limitation that a pre-confirmation recheck can show a higher amount and cannot prevent another attempt. The user also requested prominent documentation of intentionally unsupported unsigned legacy terminals.
+- Mistake: a combined patch failed because the journal context had changed; reread the current file and applied the spec and journal updates separately, preserving existing changes. No application changes or tests run.
+
+## 2026-11-08 — PB-04 user review
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user reviewed the PB-04 draft and said it looks good. Updated its handoff to distinguish user review from the still-needed consistency re-review after recent changes and the spec-first commit checkpoint.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Gate retry ordering discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user proposed disregarding an earlier gate request after its retries and not starting a new request before the prior one has completed its retry sequence. Clarification is needed for a received 402, because the vendor documents retries only when no response is received.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Gate recheck assumption
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose a pilot assumption that after a 402 the gate keeps checking until it receives 200. Documented same-ID rechecks as the proposed interaction, separate from provider payment IDs; gate support and recheck timing remain unverified. A later, abandoned-and-restarted event uses a new ID and recalculates.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Same-ID recheck confirmed
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed that the pilot gate reuses the same checkout request ID while rechecking after 402. Updated PB-04 to distinguish this choice from unverified gate capability and from the earlier architecture assumption; clarified recalculation after grace expiry.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — PB-04 specification re-review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git and patch tool. Time and cost: unknown.
+- Reviewed staged and unstaged checkout specification and integration notes, focusing on retry identity, grace and payment matching; deferred broader payment reconciliation as requested. No tests or database operations were run.
+- Mistakes: none known. Appended this entry under the review workflow instruction despite the user's request not to modify files; no application, test or specification files were changed.
+
+## 2026-11-08 — PB-04 same-ID review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and search, Git and patch tool. Time and cost: unknown.
+- Reviewed the current checkout draft, integration notes, architecture and PB-03 implementation; prioritized ordinary same-ID payment and grace behavior while distinguishing deferred exceptional cases. No tests or database operations were run.
+- Mistakes: none known. This required journal entry was appended despite the user's no-file-changes request; no application, test, specification or configuration files were changed.
+
+## 2026-11-08 — PB-04 review follow-up
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: independent review agent, repository read and patch tool. Time and cost: unknown.
+- Requested an independent review of the latest same-ID checkout contract. The reviewer identified ordinary-flow gaps concerning additional-payment quote protection and repeated 402 handling, plus documentation and persistence clarifications. No new product decisions confirmed; no application changes or tests run.
+- The reviewer appended a journal entry despite my instruction not to edit files; preserved it. Its reference to a user no-file-changes request should instead refer to my instruction to the reviewer.
+
+## 2026-11-08 — PB-04 review decisions and architecture alignment
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git status and patch tool. Time and cost: unknown.
+- The user accepted fixed additional-payment quotes after grace and terminal-side handling of repeated 402s, and requested architecture and documentation alignment. Updated the PB-04 draft and architecture with the same-ID recheck, top-up flow, payment-state handoff and unverified terminal-abandonment limitation; left supplied vendor notes unchanged.
+- Mistakes: none known. No application changes or tests run; the latest documentation edits have not received independent re-review.
+
+## 2026-11-08 — New checkout ID after grace
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user rejected adding a quote ID and chose to assume the gate uses a new checkout request ID after grace expires. Updated the PB-04 draft and architecture; how the gate knows the boundary and what the backend does if it receives an old-ID request after expiry remain open.
+- Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — Session-based checkout clarification
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user clarified that checkout evaluates current session and payment state: an unexpired payment allows exit; after expiry checkout recalculates and returns an additional amount if due. A new request ID is not required to look up an old gate ID. Updated the spec and architecture, retaining successful-authorization replay safety.
+- Mistake: I overemphasized old request IDs and proposed an unnecessary special conflict response. The user corrected the intended session-based model. No application changes or tests run.
+
+## 2026-11-08 — Session-based contract review
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: independent review agent and patch tool. Time and cost: unknown.
+- The independent review found ambiguity in applying the agreed post-grace top-up rule to an original request ID. Clarified that session quote coverage determines when to create a new fixed top-up, and that further rechecks retain it; added verification scenarios and clarified that each successful payment starts its own window. The reviewer appended its own journal entry. No application changes or tests run.
+- Mistakes: none known. The latest documentation clarification has not received further independent review.
+
+## 2026-11-08 — PB-04 independent consistency review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git and patch tool. Time and cost: unknown.
+- Reviewed staged and unstaged PB-04 and architecture changes against the brief, integration notes and PB-03 persistence and locking. Distinguished ordinary top-up contract readiness from explicitly deferred exceptional reconciliation and unverified vendor capabilities. No tests or database operations were run as requested.
+- Mistakes: none known. Appended this required journal entry without staging; no application, test, spec or configuration changes.
+
+## 2026-11-08 — PB-04 session-based clarification review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and glob, Git status, diff and history, patch tool. Time and cost: unknown.
+- Reviewed the working-tree checkout spec and architecture against supplied integration notes and PB-03 locking and replay behavior, focusing on ordinary grace, quote and retry transitions. Deferred exceptional reconciliation as requested. No tests or database operations were run.
+- Mistakes: none known. Appended this required journal entry without staging; no application, test, spec or configuration changes.
+
+## 2026-11-08 — Architecture diagram syntax
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- Replaced semicolons in the exit sequence diagram's self-message labels after the user reported a Mermaid parse error. Mermaid rendering was not run; no application changes or tests run.
+- Mistakes: none known.
+
+## 2026-11-08 — Payment sequence clarification
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user pointed out that the terminal interacts with the payment provider, which then contacts our system. Updated the sequence diagram to show that interaction and distinguish webhook verification from idempotently recording the provider's reported result; the terminal-to-provider protocol remains unspecified.
+- Mistake: the previous diagram omitted the terminal-to-provider interaction and described recording an attempt in a misleading way. No application changes or tests run; Mermaid rendering was not verified.
