@@ -1,12 +1,28 @@
 # ParkingBusiness assignment
 
-The current deliverable is the project foundation only: no check-in, checkout,
-payment or occupancy endpoints exist. See [PLAN.md](PLAN.md) and [BRIEF.md](BRIEF.md).
+PB-03 check-in and resident administration are under development and are **not
+ready for deployment**: implementation and verification are incomplete. Checkout,
+payment and occupancy endpoints do not exist. See [PLAN.md](PLAN.md) and [BRIEF.md](BRIEF.md).
+The per-attempt timer closes an acquired database connection on timeout and
+prevents a late success response. If COMMIT was already sent, its outcome may be
+unknown: retry the same gate request ID to recover the durable result. Timers
+cannot guarantee scheduling or network delivery, and the gate must correlate
+responses to its current vehicle event.
 
 ## Local setup
 
+Parking-specific HTTP routers are in `garage/src/parking/routers/` and their
+validation, timing and HTTP helpers are in `garage/src/parking/helpers/`.
+Parking business operations are in `garage/src/parking/services/`; the shared
+building row lock is acquired before request and session writes, and future
+release paths must use the same lock order. Parking configuration, initialization and HTTP transaction failure mapping remain
+in `garage/src/parking/`; generic transaction mechanics and shared database code
+live in `garage/src/db/`.
+
 Requirements: Node.js 26 (verified with 26.13.0), npm (11.20.0), Docker and
-Docker Compose. The backend uses Express, PostgreSQL, `pg` and Drizzle; Vitest
+Docker Compose. The backend uses Express, PostgreSQL, `pg` and Drizzle. Zod
+validates strict HTTP boundary schemas without coercion, reusing the shared plate
+normalizer. Vitest
 exercises HTTP and database integration. The lockfile pins installed packages.
 
 Clone with submodules as below, then from the repository root:
@@ -37,7 +53,35 @@ its data.
 Copy `garage/.env.example` to `garage/.env` and replace the placeholder with
 the development password. `.env` is ignored by Git. `DATABASE_URL` is required;
 `PORT` defaults to 3000 and must be an integer from 1 to 65535. The server
-checks the database connection at startup. To run from `garage/`:
+checks the database connection at startup. Parking startup also requires the
+following environment variables, with each placeholder replaced by a different,
+randomly generated secret. Keep real keys out of source control and shell history.
+
+```text
+PARKING_BUILDINGS={"PB-AMS-2M8D":50}
+PARKING_KEYS={"entrance-1":["<key>"],"entrance-2":["<key>"],"exit-1":["<key>"],"exit-2":["<key>"],"admin":["<key>"]}
+```
+
+`PARKING_BUILDINGS` configures the resident-admin allowlist and per-building
+registration limits, not layouts or gate routing. PB-03 fixes the pilot code,
+its limit of 50 and its space layout in `garage/src/parking/pilot.ts`; changing
+these requires a revised contract, not an environment override. Other configured
+codes only enable resident administration, not check-in. Startup still checks the
+complete configured building/limit set against the authoritative database.
+
+Arrays permit old/new key overlap for rotation; keys cannot be duplicated. Gates
+require HTTPS or a trusted TLS terminator, which this application does not provide.
+The vendor has not confirmed that gates discard late responses from prior vehicle
+events. A committed response may be lost, and an operator must investigate
+potential orphaned sessions. Monitor retained request records and database capacity
+without using plates or keys as monitoring labels. Initial startup creates the
+configured buildings and pilot layout; subsequent startups reject mismatches.
+To change allowed buildings or limits, stop **all** instances, configure the
+complete new `PARKING_BUILDINGS` set and run `npm run db:update-buildings` from
+`garage/` against the verified intended database. The update retains existing
+buildings and rejects limits below existing registrations. Configure every
+instance identically before restarting; rolling configuration changes are not
+supported. To run from `garage/`:
 
 ```sh
 npm run db:migrate
@@ -71,7 +115,11 @@ running migrations twice on that same connection. It compares the migration
 bookkeeping to the checked-in migrations and verifies that a second run adds
 nothing. This is a safeguard, not proof that the service on the port is the
 intended disposable container: verify the container and mapping yourself first.
-Tests apply migrations but do not reset or delete data. Configure the test URL
+Tests apply migrations; parking tests delete only their randomly named fixtures
+after verifying the database identity. The fresh-migration test also creates and
+drops a uniquely named database on that verified isolated test server; its test
+role therefore needs `CREATEDB` privileges. Never point it at a shared server.
+Configure the test URL
 separately (a password is required):
 
 ```sh

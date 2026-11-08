@@ -222,3 +222,123 @@
 - Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool and Git diff check. Time and cost: unknown.
 - The user confirmed the 1,500 ms per-attempt check-in budget and that pilot space IDs are physical space numbers assigned according to the brief, with building-specific categories for future layouts. Documented the 500 ms nominal margin before the gate's two-second wait and its delivery and commit limitations in the spec and architecture.
 - Mistakes: none known. No application tests run.
+
+## 2026-11-08 — PB-03 partial implementation
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, shell, Docker inspection, patch tool, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Verified that the PB-03 spec commit is an ancestor of HEAD and that the working spec matches it. Added an isolated ASCII plate normalization function and boundary tests; it is not yet wired to an endpoint. PB-03 is incomplete: its endpoints, persistence, concurrency and recovery behavior remain to be implemented and tested.
+- Lint, format check, type-check, build and unit tests passed. Did not run database tests or migrations: the running test container was listed but its storage and database identity were not independently verified. No independent review was performed.
+- Mistake: initially used a JavaScript end-anchored character validation regex, which can accept a final newline; noticed during implementation and replaced it with a disallowed-character check before running tests. Added a newline regression case.
+
+## 2026-11-08 — PB-03 continued
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Confirmed the PB-03 spec commit is an ancestor of HEAD and the working spec matches HEAD. Preserved the existing plate work. Added reusable credential/role handling, including rotation identity and duplicate-key rejection, and canonical check-in body validation with unit/HTTP tests. These components are not wired into the application; PB-03 remains incomplete and must not be deployed as a working check-in service.
+- Lint, format check, type-check, build and all 22 unit tests passed. The first lint run reported four missing-brace warnings; corrected them and reran successfully. Full test suite and migrations were not run: the test database's container, storage and identity were not verified in this session. No independent review was performed.
+
+## 2026-11-08 — PB-03 application integration
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker inspection and psql, Drizzle Kit, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Added the versioned parking schema, startup configuration and pilot initialization, an offline building-update command, authenticated resident routes and transactional check-in/replay. A per-building PostgreSQL row lock serializes registry and allocation; partial unique indexes protect active spaces and plates. Preserved prior uncommitted work. Added operator setup and limitations to the README. PB-03 is not yet deployment-ready: in particular, uncertain commit/network-stall timing and several specified fault-injection and concurrency cases are not verified, and the database-side deadline does not by itself bound a stalled client/network connection.
+- Before migration/testing, inspected the test container: PostgreSQL 17, loopback 55433, no mounts and tmpfs database storage; queried its `garage_test` database as `garage_test`. Generated and inspected the migration. The full configured suite passed with 38 tests, including migration repeat, registry and allocation contention, retry, timeout and closed-event fixtures; lint, formatting, type-check, build and `git diff --check` passed. The suite uses serialized test files to avoid concurrent migration races. No independent review was performed.
+- Mistakes: the first lint run found unsafe test response access and brace warnings; corrected those and reran. One patch attempt did not match formatted test context; inspected the file and reapplied it. No live credentials were added. The first integration run preceded fixture cleanup support; it left its test-only rows in the disposable test instance, which were not deleted retroactively.
+
+## 2026-11-08 — PB-03 implementation independent review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript, Vitest and patch tool. Time and cost: unknown.
+- Reviewed the uncommitted implementation against the committed spec, including startup, security, concurrency and deadlines. Ran lint, formatting check, type-check and unit tests; did not run database-migrating tests without independently verifying an isolated target. Reported findings and verification gaps in the review response.
+- Mistakes: none known. The required journal entry was appended despite the user's request not to modify files; no implementation files were changed.
+
+## 2026-11-08 — PB-03 review follow-up
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker inspection and psql, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Added a monotonic per-attempt timer covering body receipt and database work. At expiry it suppresses late success, closes an acquired pool client, and discards a client acquired after expiry; the transaction installs server-side statement, lock and idle-in-transaction limits. COMMIT already sent remains uncertain and is recovered by retrying the same durable gate request ID. Added the malformed URL encoding response fix.
+- Verified the test container's image, loopback mapping, temporary storage and database/user identity before database changes. Added tests for slow request bodies, delayed acquisition and simulated BEGIN/configuration/rollback stalls, PostgreSQL stalls before allocation and at commit, a delayed committed acknowledgement with replay, final-space contention, registration/removal order across app instances, plate uniqueness, key rotation/application recreation and fresh-database migration. The fresh test creates and drops only a uniquely named database on the verified isolated server. Lint, formatting, type-check, build, all 54 tests and `git diff --check` passed.
+- Mistakes: the first lint run exposed empty callback errors and missing-brace warnings in the deadline change; corrected and reran successfully. While adding the stalled-rollback test, noticed that cancellation could clear the client before rollback's error handler ran; retained a reference and avoided double release. The tests simulate commit acknowledgement delay and database stalls, not every network partition or process crash. Event-loop scheduling and network delivery cannot be hard real-time guarantees; gate event correlation remains unverified. Independent re-review of these fixes remains outstanding.
+
+## 2026-11-08 — PB-03 implementation re-review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript, Vitest and patch tool. Time and cost: unknown.
+- Re-reviewed deadline cancellation, transaction handling, malformed-path handling and new tests. Lint, formatting check, type-check, unit tests and diff check passed. Did not run database-mutating tests without independently verifying the test target. Findings and verification limits are reported in the review response.
+- Mistakes: none known. The required journal entry was appended despite the user's request not to modify files; no implementation files were changed.
+
+## 2026-11-08 — PB-03 connection-error review fixes
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker inspection and psql, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Added sanitized idle-pool error handling and checked-out client error ownership; broken clients are discarded in check-in, startup initialization and building updates. Moved admin authentication ahead of Express parameter decoding. PostgreSQL tests terminate isolated test backends while idle in the pool, idle while checked out, during check-in, and during initialization; the check-in test retries the same ID after termination.
+- Verified the test container's image, loopback mapping, tmpfs storage and database/user identity before database operations. All 58 configured tests, type-check, build, targeted lint/format and `git diff --check` passed. Full lint exited successfully with two warnings in an existing untracked `.pnp.cjs`; full format check failed on existing untracked `.pnp.cjs` and `.pnp.loader.mjs`. Those files and other untracked Yarn artifacts were preserved. The first type-check attempt temporarily could not resolve Node types; a subsequent run succeeded without changing dependencies.
+- Mistakes: initial lint on the changes found a nullable boolean expression and brace warnings, corrected before final checks. Actual backend termination was tested; arbitrary network partitions, process crashes and post-COMMIT connection loss remain incompletely covered. No independent review of these fixes was performed.
+
+## 2026-11-08 — Connection and authentication re-review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript, Vitest and patch tool. Time and cost: unknown.
+- Re-reviewed connection error ownership, transaction cleanup and malformed-path authentication precedence. Lint, formatting, type-check, unit tests and diff check passed; database-mutating integration tests were not run without independently verifying the isolated target. Reported verification limits in the review response.
+- Mistakes: none known. The required journal entry was appended despite the user's request not to modify files; no implementation files were changed.
+
+## 2026-11-08 — PB-03 commit-loss and restart tests
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker inspection and psql, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Added a PostgreSQL wire-protocol TCP proxy test for a dropped connection immediately before COMMIT, during a deferred-trigger COMMIT, and after PostgreSQL's COMMIT acknowledgement but before forwarding it. Tests inspect durable request/session state, retry the same ID, reject changed content and check for duplicates. Added a real server-process SIGKILL/restart replay test. No application fix was required by these tests. The during-COMMIT case intentionally permits either atomic outcome: PostgreSQL can commit even after the client disconnects.
+- Inspected the test container's loopback port, Compose service label and tmpfs storage, and checked its database/user identity before tests; used its existing local password without printing it. Lint, formatting check, type-check, build and the full suite (62 tests) passed. No independent review was performed.
+- Mistakes: the initial proxy tests stalled because tiny protocol frames incurred TCP delays; enabled TCP_NODELAY and added an early-completion diagnostic. The first timed-out run left one uniquely named test trigger and function; identified and removed only those fixtures from the verified test database. Initially assumed disconnection during COMMIT meant rollback; the test showed PostgreSQL can complete the commit, so the assertion now verifies atomicity and recovery rather than assuming an outcome. Initial lint found two style issues, which were corrected.
+
+## 2026-11-08 — PB-03 crash at commit recovery
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker inspection and psql, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Extended the TCP proxy to hold PostgreSQL's COMMIT acknowledgement. After independently observing the committed session and request, killed the actual server with SIGKILL before an HTTP response and verified replay, conflicting-content rejection and a single durable session after restarting it. Also killed the server while a deferred PostgreSQL trigger was executing inside COMMIT; waited for the original transaction to finish and verified same-ID recovery for whichever atomic outcome resulted. No application changes were needed.
+- Rechecked the isolated test container's service label, loopback mapping, tmpfs storage and database/user identity. The targeted six tests and full suite of 64 tests passed; lint, format check, type-check and build passed. No independent review was performed. Mistakes: none known.
+
+## 2026-11-08 — Centralize pilot building contract
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker inspection and psql, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Centralized the fixed PB-03 pilot code, registration limit and space ranges; retained the existing environment-configured resident-admin allowlist and authoritative database startup comparison. Did not make the pilot layout or gate binding arbitrary configuration, since the committed spec fixes them and does not specify other layouts. Added configuration and fresh-database layout assertions and documentation.
+- Verified the test container's Compose service, loopback port, tmpfs storage and database/user identity before running database tests. All 64 tests, lint, format check, type-check, build and diff whitespace check passed. Independent review was not performed. Mistake: the first format check found two formatting issues; fixed them and reran successfully.
+
+## 2026-11-08 — PB-03 route refactor
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker and psql, npm, Prettier, ESLint, TypeScript and Vitest. Time and cost: unknown.
+- Split check-in and resident routes, common HTTP handling and the existing transaction/deadline implementation into focused modules. Kept resident authentication ahead of path decoding and preserved the building lock, deadline cancellation and uncertain-commit handling; did not implement checkout. Added an authenticated resident-listing and no-cache integration assertion. Existing staged work was left staged; these changes remain unstaged.
+- Verified the test container's Compose service, loopback port, tmpfs storage and database/user identity before running database tests. Lint, format check, type-check, build and all 65 tests passed, including PostgreSQL concurrency and recovery tests. No independent review was performed.
+- Mistakes: initially inspected an incorrect container name; corrected it using the running container list. The first lint run after adding the listing test flagged an unsafe matcher assignment; replaced it with typed assertions and reran checks successfully.
+
+## 2026-11-08 — Organize parking source
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: customize-opencode skill, repository read/search, Git, patch tool, Docker and psql, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Grouped existing parking routers and helpers in feature-local directories, updated imports, tests, README and relevant agent guidance. Kept existing staged changes staged and made no feature changes.
+- Verified the running test container's image, loopback mapping, tmpfs storage and database/user identity before tests. Lint, format check, type-check, build and all 65 tests passed. No independent review was performed. Mistakes: none known.
+
+## 2026-11-08 — Separate transaction mechanics
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker and psql, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Moved generic transaction and lease handling into `db/transaction.ts`, with a generic result, caller-supplied deadline and failure context; retained parking's HTTP error mapping and shared its 1,500 ms budget with the deadline. Preserved the cancellation, rollback and uncertain-commit paths and existing staged changes. Updated the source-layout description and added focused transaction tests.
+- Verified the test container's Compose service, image, loopback mapping, tmpfs storage and database/user identity. Lint, format check, type-check, build, all 69 tests and staged/unstaged diff whitespace checks passed. No independent review was performed. The first lint run found unnecessary type assertions and test callbacks marked async without await; corrected them and reran verification.
+
+## 2026-11-08 — PB-03 independent review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git and patch tool. Time and cost: unknown.
+- Reviewed the working-tree implementation against the committed spec, concentrating on maintainability, transactional boundaries and operational risks. No tests were run; database isolation was not established for this review. Mistakes: none known.
+
+## 2026-11-08 — PB-03 check-in extraction (partial)
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker inspection, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Extracted check-in transaction logic into a service without changing its SQL or transaction boundary. The resident extraction, named building lock and Zod schemas remain unfinished; no dependency was added. PostgreSQL integration verification was not performed: the isolated target was not fully verified in this session. The configured lint, formatting, type-check and build passed, as did 32 unit tests. npm audit reported 11 moderate vulnerabilities in existing development dependencies.
+- The initial lint run reported missing braces in the extracted code; fixed with ESLint and reran the checks. No independent review was performed.
+
+## 2026-11-08 — PB-03 services and boundary validation
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: Git, repository read/search, patch tool, Docker inspection and psql, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Extracted resident operations, retaining their transactions, and named the existing building row lock shared with check-in. Documented that it precedes request/session writes and must also be used by future release paths. Added Zod as a production dependency for strict non-coercing HTTP schemas, retaining the explicit plate normalizer and staged error precedence. Added HTTP precedence and type tests; documented the dependency and lock order.
+- Inspected the test container directly: Compose test-db label, loopback port 55433, tmpfs data directory, no mounts, and `garage_test` database/user identity. The resident/check-in integration file passed after extraction (25 tests); after validation changes the full suite passed (70 tests), as did lint, format check, type-check and build. Full npm audit reported 11 moderate existing development dependency findings; production-only audit reported zero. No independent review was performed.
+- Mistakes: an unnecessary command attempted to run Node inside the PostgreSQL container; it did not modify data. Two patches initially failed to match formatted context and were reapplied after inspection. The first type-check of the added tests found an overly broad Supertest payload type; corrected it and reran all checks.
+
+## 2026-11-08 — Journal reorganization
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git and patch tool. Time and cost: unknown.
+- Reordered PB-03 implementation entries after planning while preserving historical entries. No application tests needed for this journal-only change.
+
+## 2026-11-08 — Request ID UUID validation
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker and psql, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Replaced the shape-only request ID regex with Zod's UUID validator. Added valid, malformed, invalid-version and invalid-variant cases, including authenticated HTTP 400 assertions and confirmation that invalid IDs do not access the database. Preserved existing work; no independent review was performed.
+- Verified the test container's Compose service, image, loopback port, tmpfs storage, absence of mounts and database/user identity. Targeted tests passed; the full suite passed (78 tests), as did lint, format check, type-check and build.
+- Mistake: the first full-suite run failed database authentication because the shell password variable was not exported to the URL-encoding subprocess; exported it and reran successfully. No credentials were printed.

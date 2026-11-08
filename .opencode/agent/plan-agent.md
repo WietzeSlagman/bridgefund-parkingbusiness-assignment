@@ -209,13 +209,15 @@ Inspect the repository before relying on a path or command.
 │   │   ├── api/             # Shared HTTP concerns
 │   │   ├── config/          # Application configuration
 │   │   ├── db/              # Drizzle schema and PostgreSQL connection
-│   │   ├── parking/         # Parking behavior
+│   │   ├── parking/         # Parking behavior and configuration
+│   │   │   ├── helpers/     # Parking validation and HTTP helpers
+│   │   │   └── routers/     # Parking HTTP routers
 │   │   └── payments/        # Payment behavior
 │   ├── migrations/          # Generated database migrations
 │   └── tests/
 │       ├── unit/
 │       └── integration/
-├── compose.yaml             # Proposed local PostgreSQL configuration
+│   └── compose.yaml         # Local PostgreSQL configuration
 ├── AGENTS.md
 ├── BRIEF.md
 ├── JOURNAL.md

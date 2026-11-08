@@ -110,8 +110,10 @@ mark unavailable details as unknown rather than guessing.
 The intended structure places backend code in `garage/src/`, migrations in
 `garage/migrations/`, and unit and integration tests in `garage/tests/`. Specs
 live in `specs/`; supplied integration notes and simulator live in `docs/` and
-`simulator/`. Inspect the actual structure and configuration before relying on
-it, and adapt to the task rather than creating unnecessary files or layers.
+`simulator/`. Parking HTTP routers live in `garage/src/parking/routers/` and
+parking helpers in `garage/src/parking/helpers/`. Inspect the actual structure
+and configuration before relying on it, and adapt to the task rather than
+creating unnecessary files or layers.
 
 Do not invent build, test, lint, migration, or Docker commands. Read the package
 scripts, configuration, and documentation to determine what is available. When

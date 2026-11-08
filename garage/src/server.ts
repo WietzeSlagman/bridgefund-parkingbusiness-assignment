@@ -2,9 +2,12 @@ import "dotenv/config";
 import { createApp } from "./app.js";
 import { loadConfig } from "./config/index.js";
 import { createDatabase } from "./db/index.js";
+import { loadParkingConfig } from "./parking/config.js";
+import { initializeParking } from "./parking/initialize.js";
 
 async function main() {
   const config = loadConfig(process.env);
+  const parkingConfig = loadParkingConfig(process.env);
   const { pool } = createDatabase(config.databaseUrl);
   try {
     await pool.query("SELECT 1");
@@ -12,11 +15,22 @@ async function main() {
     await pool.end();
     throw new Error("Database connection failed");
   }
-  const server = createApp().listen(config.port, () => {
-    // Startup logging is the only logging currently available.
-    // eslint-disable-next-line no-console
-    console.log(`Listening on port ${config.port}`);
-  });
+  try {
+    await initializeParking(pool, parkingConfig);
+  } catch {
+    await pool.end();
+    throw new Error(
+      "Parking initialization failed or building configuration mismatched",
+    );
+  }
+  const server = createApp({ pool, config: parkingConfig }).listen(
+    config.port,
+    () => {
+      // Startup logging is the only logging currently available.
+      // eslint-disable-next-line no-console
+      console.log(`Listening on port ${config.port}`);
+    },
+  );
   server.on("error", () => {
     // eslint-disable-next-line no-console -- report startup failure without internal details
     console.error("HTTP server failed to start");
