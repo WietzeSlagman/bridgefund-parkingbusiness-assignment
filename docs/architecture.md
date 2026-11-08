@@ -50,6 +50,8 @@ These are logical responsibilities, not mandated services or directory layout. P
 
 The pilot registry holds at most 50 registered plates. Normalize case and remove spaces and dashes, so `AB-123-C`, `ab123c` and `AB 123 C` match. Exact allowed characters and validation limits remain for the feature spec.
 
+The check-in response's `parkingSpaceId` is the physical space number from this table; it is selected by the application, not supplied by the gate. Space number, building, floor and eligibility are stored as data. Numbers are unique within a building, and future buildings need not follow the pilot's numbering/category ranges.
+
 | Registered plate? | Driver selection | Outcome |
 | --- | --- | --- |
 | Yes | Resident or visitor | Free resident space, for either vehicle type |
@@ -58,11 +60,13 @@ The pilot registry holds at most 50 registered plates. Normalize case and remove
 
 Reject a second active session for the same normalized plate. The session's actual category is determined at check-in: adding a plate to the registry later does not make an existing visitor session free. This is a deliberate simplification and limitation. Checkout's required `isResident` field is non-authoritative: a mismatch does not change the recorded category or reject checkout. The registry contains no resident profile, but licence plates can still be personal data and require protection.
 
-An admin API, protected with its own generated key, registers and removes plates and lists registered plates. Prevent removal during an active resident session. The limit, active-session rule and allocation must remain correct under concurrent requests. Together these rules protect *recorded* resident capacity, not physical availability: the exit approximation below can diverge from reality. Exact admin routes, capacity enforcement and error behavior remain to be specified.
+An admin API, protected with its own generated key, registers and removes plates and lists registered plates per building. Allowed building codes and registration limits are configured; a database building record is initialized for the pilot, `PB-AMS-2M8D`, with capacity 50. There is no building-management API yet. Allowing a building's code for registry administration does not establish check-in support, its layout or its tariff. Prevent removal during an active resident session. The limit, active-session rule and allocation must remain correct under concurrent requests. Together these rules protect *recorded* resident capacity, not physical availability: the exit approximation below can diverge from reality. Exact admin routes, capacity enforcement and error behavior are specified in PB-03.
 
 ## Check-in and occupancy
 
 An authenticated entrance gate submits the brief's check-in request with `X-Request-Id`. The system validates it, resolves eligibility, and allocates an eligible space and creates a session atomically. Concurrent successful requests must never allocate the same space; protect this with PostgreSQL-enforced invariants and appropriate transactions, not only in-memory locks. A retry of a successful check-in must not allocate another space.
+
+Each check-in attempt has a 1,500 ms application processing budget, measured from receipt. The gate waits two seconds before retrying, so the remaining nominal 500 ms allows response travel; it is not a delivery guarantee. A committed response can still be lost or go unacted upon, and an operator may have to investigate a potentially orphaned session. A safe deployment requires the gate to correlate responses with the current vehicle event, including ignoring old responses: the supplied notes do not confirm this capability. Building configuration changes require all instances to stop for a coordinated database/configuration update and restart.
 
 Occupancy is publicly readable and reflects **recorded allocation**. It must not disclose plates or payment information. How to represent resident and vehicle-category eligibility in the response is to be specified in PB-06. On exit authorization, the system releases the recorded space, assuming the vehicle leaves. It cannot verify that the barrier actually opened or the vehicle departed; actual occupancy can therefore differ.
 

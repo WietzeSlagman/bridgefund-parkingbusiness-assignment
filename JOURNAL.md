@@ -151,8 +151,74 @@
 - At the user's request, documented the agreed pilot architecture and flow in `docs/architecture.md`, including diagrams, pricing examples, security decisions, vendor assumptions, limitations and unresolved feature-spec details. No application code or tests changed.
 - Mistakes: none known. Documentation was checked for whitespace errors; application tests were not run for this planning-only change.
 
+## 2026-11-08 — PB-03 planning started
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, exploration agent and patch tool. Time and cost: unknown.
+- Reviewed the brief, integration notes, architecture and current foundation for a PB-03 implementation handoff. Identified remaining decisions on plate validation, capacity, resident administration and retry semantics; no PB-03 spec or application changes made yet.
+- Mistakes: none known. No tests run.
+
 ## 2026-11-08 — Pricing and departure decisions
 
 - Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
 - The user chose started-hour charging rather than prorating, and requested explicit departure confirmation before freeing a space, with an additional charge for a significant payment-to-exit delay. The delay threshold and charging mechanics remain open. Clarified that provider webhooks notify the backend, while the gate notification mechanism is unspecified.
 - Mistakes: none known. No application changes or tests run.
+
+## 2026-11-08 — PB-03 specification review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git status and history, patch tool. Time and cost: unknown.
+- Reviewed the provisional check-in specification against the brief, integration notes, architecture and recorded decisions, focusing on retries, allocation and registry concurrency. No application or specification changes; no tests run for this document review.
+- Mistake: initially inserted this entry in the middle of the journal; a search located it and it was moved to the end.
+
+## 2026-11-08 — PB-03 draft and review follow-up
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git status and diff check, review agent and patch tool. Time and cost: unknown.
+- The user confirmed building-scoped resident administration with configured allowed codes, conflict on duplicate registrations, plate validation, capacity and lowest-space allocation, request identity and configuration-managed keys. Drafted `specs/pb-03-check-in.md` and updated the architecture; the independent review identified retry safety, locking and credential identity gaps. Clarified the later user decision to release at exit authorization and left stale gate responses as a blocking question.
+- Mistakes: a patch initially failed because its context did not match; corrected it after the tool reported the error. The review agent also added a journal entry despite being asked not to edit files; noticed in its report and preserved the entry. No application tests run.
+
+## 2026-11-08 — PB-03 pilot contract clarifications
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository search and patch tool. Time and cost: unknown.
+- The user accepted gate-side discarding of stale responses as a pilot assumption and `409` for a retry after release, building records with configured per-building registration limits and pilot initialization, the proposed admin routes and bearer credentials. Updated the provisional spec and architecture. The user raised the source of vehicle type; the brief supplies a field but does not specify how a gate determines it, so verification policy remains open.
+- Mistakes: none known. No application tests run.
+
+## 2026-11-08 — Gate vehicle type
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose to accept the vehicle type supplied by the gate without independent classification. Documented the misclassification risk; the meaning and vendor support of discarding stale responses remain under discussion.
+- Mistakes: none known. No application tests run.
+
+## 2026-11-08 — PB-03 gate response interpretation
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool and Git diff check. Time and cost: unknown.
+- The user accepted the gate-owned event and request-ID interpretation: ordinary HTTP responses, the first 2xx rule from the vendor notes, safe retries and a retained request ID with `409 EVENT_CLOSED` after release. Detailed treatment of responses arriving after the next vehicle event remains a vendor clarification. Updated the PB-03 draft.
+- Mistakes: none known. No application tests run.
+
+## 2026-11-08 — PB-03 decisions confirmed
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, patch tool and Git diff check. Time and cost: unknown.
+- The user confirmed duplicate-registration conflict, absent-registration 404, reevaluation of a failed check-in with its bound request ID, configuration-managed generated keys, and a pilot-only initial building configuration with explicit limits for later buildings. Updated the PB-03 draft to distinguish these decisions from vendor and deployment assumptions.
+- Mistakes: a patch failed because the journal context no longer matched; inspected the file and applied the change without restoring or overwriting other entries. No application tests run; the draft awaits user review and the authorized spec-first commit.
+
+## 2026-11-08 — PB-03 independent re-review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and glob, Git status, history and diff check, patch tool. Time and cost: unknown.
+- Re-reviewed the current uncommitted PB-03 draft and subsequent decisions against the brief and integration and architecture notes. Reported remaining contract, retry and configuration gaps in the review response; no spec or application changes. No tests or database operations, as requested.
+- Mistakes: none known.
+
+## 2026-11-08 — PB-03 re-review decisions
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, patch tool and Git diff check. Time and cost: unknown.
+- The user accepted a bounded check-in deadline with documented orphaned-session risk, gate response correlation as a required but unverified deployment capability, and offline coordinated building-configuration changes. Updated the spec with those choices, additional retry, credential and concurrency detail, and a proposed 1,500 ms budget for confirmation; aligned the architecture summary.
+- Mistakes: none known. No application tests run.
+
+## 2026-11-08 — Parking space identifiers discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- Clarified that the brief's parking space IDs are physical pilot space numbers returned by check-in, not caller-provided input, and that pilot eligibility and floor mappings must match the brief. Discussed keeping categories as building-specific space data rather than assuming pilot numeric ranges for future buildings. The processing-budget proposal remains unconfirmed.
+- Mistakes: none known. No application tests run.
+
+## 2026-11-08 — Space numbering and deadline confirmed
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool and Git diff check. Time and cost: unknown.
+- The user confirmed the 1,500 ms per-attempt check-in budget and that pilot space IDs are physical space numbers assigned according to the brief, with building-specific categories for future layouts. Documented the 500 ms nominal margin before the gate's two-second wait and its delivery and commit limitations in the spec and architecture.
+- Mistakes: none known. No application tests run.
