@@ -1,5 +1,11 @@
 # Journal
 
+## 2026-11-09 — PB-06 occupancy implementation
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Docker, npm, Vitest, TypeScript, ESLint and Prettier. Time and cost: unknown.
+- Confirmed the reviewed PB-06 spec was committed and unchanged. Added public building-scoped occupancy and free counts using one PostgreSQL statement snapshot, with no allocation locks or private session data. Documented recorded versus physical availability; PB-05 remains unimplemented.
+- Verified the isolated PostgreSQL container's port, temporary storage and database identity; ran the full test suite and configured lint, formatting, type-check and build. Mistakes: the initial format check failed because Prettier required a second pass on a chained expression; rerunning formatting and the checks resolved it. An initial route suffix test could confuse a building named `availability`; corrected during self-review. Independent review remains outstanding.
+
 ## 2026-11-08 — Assignment planning
 
 - Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, search, shell status and simulator test via exploration agents; patch tool for planning documents.

@@ -4,8 +4,8 @@ PB-03 check-in and resident administration are implemented but are **not ready
 for deployment**. The three latest independent-review findings have fixes and
 PostgreSQL-backed regression tests; the fixes have not had a further independent
 review. The latest independent review did not independently run database tests.
-PB-04 checkout is implemented as a pilot, but payment and occupancy endpoints do
-not exist. PB-05 and PB-06 each require a committed spec before implementation.
+PB-04 checkout and PB-06 occupancy are implemented as a pilot; the payment
+webhook does not yet exist.
 See [PLAN.md](PLAN.md), [the checkout spec](specs/pb-04-check-out.md), and
 [BRIEF.md](BRIEF.md).
 The per-attempt timer closes an acquired database connection on timeout and
@@ -35,6 +35,12 @@ complete payment-dependent exit until upgrade or a separately authenticated
 integration. Delayed payments for abandoned or renewed quotes remain unresolved;
 do not treat them as safely attributable. Recorded release assumes physical
 departure, which is not detected. These limitations preclude production use.
+
+Public `GET /occupancy/{building}` lists recorded spaces and eligibility;
+`GET /occupancy/{building}/availability` counts free resident, visitor-car and
+visitor-motorcycle spaces separately. Both are uncached point-in-time reads, not
+physical sensors or guarantees of future availability. Unknown buildings return
+404; known buildings without a layout return an empty list and zero counts.
 Resident administration also uses a 1,500 ms transaction deadline, including
 database statement, lock and idle bounds and connection disposal on cancellation.
 An admin COMMIT interrupted after being sent can have an unknown outcome: inspect

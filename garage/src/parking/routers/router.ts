@@ -6,6 +6,7 @@ import { checkInRouter } from "./check-in.js";
 import { checkOutRouter } from "./check-out.js";
 import type { ParkingConfig } from "../config.js";
 import { residentRouter } from "./residents.js";
+import { occupancyRouter } from "./occupancy.js";
 
 export function parkingRouter(pool: pg.Pool, config: ParkingConfig) {
   watchPool(pool);
@@ -16,5 +17,6 @@ export function parkingRouter(pool: pg.Pool, config: ParkingConfig) {
   router.use("/admin/residents", residentRouter(pool, config));
   router.use(checkInRouter(pool, auth));
   router.use(checkOutRouter(pool, auth));
+  router.use(occupancyRouter(pool));
   return router;
 }
