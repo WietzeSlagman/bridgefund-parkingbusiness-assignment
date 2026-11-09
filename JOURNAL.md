@@ -635,8 +635,38 @@
 - Drafted a small public occupancy spec using existing space categories and active sessions. Proposed an eligibility array because resident spaces accept both vehicle types; the representation and display interpretation remain for user confirmation. Preserved the existing PB-05 draft and journal work.
 - Mistakes: none known. No application changes, tests or database operations were performed.
 
+## 2026-11-09 — Building-scoped occupancy discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user accepted the proposed category and eligibility fields and requested building-code lookup. Updated the PB-06 draft with a proposed building-scoped route; a separate availability endpoint and behavior for unknown or layout-less buildings remain open.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — Availability counts
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user requested a separate availability-count endpoint and 404 for a building not found. Added free counts by resident, visitor-car and visitor-motorcycle category to the provisional PB-06 spec; path versus query lookup and treatment of an existing building without a layout remain open.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — Empty building layout
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose an empty layout rather than a 404 for a known building without spaces. Updated the draft to return an empty list and zero availability counts; unknown buildings still return 404. Path versus query lookup remains open.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — Occupancy routes confirmed
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed path-based building lookup for the occupancy list and availability counts. Updated the PB-06 handoff; the spec-first commit remains required before implementation.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
 ## 2026-11-09 — Superseded checkout contract
 
 - Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
 - The user accepted `409 CHECKOUT_SUPERSEDED` for a superseded pending checkout and structured investigation logs for unexpected payment confirmations, and asked for clear developer documentation of the checkout interaction. Updated the PB-05 draft with the example, failure acknowledgement and the successful replay exception.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-05 development handoff check
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git status, history and diff, patch tool. Time and cost: unknown.
+- Verified that PB-05 spec commit `a96c59b` exists and the working spec matches HEAD. The committed handoff still flags the latest amendments for review, PB-04 alignment and an unspecified unexpected-payment status; advised a development-agent review before implementing unresolved contract details.
 - Mistakes: none known. No application changes, tests or database operations were performed.
