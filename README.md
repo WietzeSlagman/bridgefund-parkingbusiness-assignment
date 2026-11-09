@@ -4,13 +4,37 @@ PB-03 check-in and resident administration are implemented but are **not ready
 for deployment**. The three latest independent-review findings have fixes and
 PostgreSQL-backed regression tests; the fixes have not had a further independent
 review. The latest independent review did not independently run database tests.
-Checkout, payment and occupancy endpoints do not exist; PB-04–PB-06 each require
-a spec committed before implementation. See [PLAN.md](PLAN.md) and [BRIEF.md](BRIEF.md).
+PB-04 checkout is implemented as a pilot, but payment and occupancy endpoints do
+not exist. PB-05 and PB-06 each require a committed spec before implementation.
+See [PLAN.md](PLAN.md), [the checkout spec](specs/pb-04-check-out.md), and
+[BRIEF.md](BRIEF.md).
 The per-attempt timer closes an acquired database connection on timeout and
 prevents a late success response. If COMMIT was already sent, its outcome may be
 unknown: retry the same gate request ID to recover the durable result. Timers
 cannot guarantee scheduling or network delivery, and the gate must correlate
 responses to its current vehicle event.
+
+Checkout accepts an exit-gate bearer credential, a unique `X-Request-Id` and
+`{ "parkingSessionId": "<uuid>", "isResident": false }`. A `402` reports an
+outstanding fixed quote and does not open the barrier; the gate must recheck the
+same request without starting a new payment for each repeated response. A `200`
+authorizes exit and releases the recorded space. Successful retries replay the
+original response. New interactions require new IDs. This pilot contract and
+rechecking behavior have not been confirmed by the gate vendor; it assumes that
+the gate can correlate late responses and abandons old interactions correctly.
+
+PB-04 has no endpoint for recording payment: paid exit cannot be completed until
+PB-05 implements authenticated provider confirmations. The current schema holds
+fixed interaction amounts and session payment records for that later integration,
+which must take the building lock first and validate amount, currency and identity.
+An interaction stores the session's paid total when its amount is issued; a later
+valid session payment indicates ordinary coverage, not payment-to-quote attribution.
+The provider's unsigned legacy-terminal requests are intentionally unsupported:
+`X-Terminal-Compat: 1` is not authentication. Drivers using those terminals cannot
+complete payment-dependent exit until upgrade or a separately authenticated
+integration. Delayed payments for abandoned or renewed quotes remain unresolved;
+do not treat them as safely attributable. Recorded release assumes physical
+departure, which is not detected. These limitations preclude production use.
 Resident administration also uses a 1,500 ms transaction deadline, including
 database statement, lock and idle bounds and connection disposal on cancellation.
 An admin COMMIT interrupted after being sent can have an unknown outcome: inspect
@@ -143,6 +167,11 @@ The initial migration is deliberately a no-op, apart from Drizzle's migration
 bookkeeping. For later schema changes, update `src/db/schema.ts`, run
 `npm run db:generate`, inspect the versioned SQL and metadata, and test the
 migration against the isolated test database before applying it elsewhere.
+PB-04's unreleased `0002` creates the final checkout schema directly. It replaces
+an earlier uncommitted `0002`–`0005` sequence, not an upgrade from it. Databases
+that applied any of that sequence have incompatible migration bookkeeping and
+may have an incompatible schema. Do not reset, edit bookkeeping, or migrate them
+blindly; preserve their data and obtain an explicit migration/recovery decision.
 `db:generate` also requires a valid `DATABASE_URL`. The integration test uses
 Drizzle ORM's migrator on its verified connection; the separate `db:migrate`
 command uses Drizzle Kit and targets `DATABASE_URL`, not `TEST_DATABASE_URL`.

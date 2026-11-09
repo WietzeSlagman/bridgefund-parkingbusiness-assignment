@@ -37,6 +37,12 @@ describe("parking pricing", () => {
     expect(price("2026-01-01T22:45:00Z", "2026-01-01T23:45:01Z").cents).toBe(
       1000,
     );
+    expect(price("2026-01-01T22:45:00Z", "2026-01-01T23:45:00Z").cents).toBe(
+      500,
+    );
+    expect(price("2026-01-01T23:00:00Z", "2026-01-04T23:00:00Z").cents).toBe(
+      9000,
+    );
   });
   it("uses elapsed time through DST changes", () => {
     expect(price("2026-03-29T00:30:00Z", "2026-03-29T02:30:00Z").cents).toBe(
@@ -44,6 +50,12 @@ describe("parking pricing", () => {
     );
     expect(price("2026-10-25T00:30:00Z", "2026-10-25T02:30:00Z").cents).toBe(
       1000,
+    );
+    expect(price("2026-03-28T23:00:00Z", "2026-03-29T22:00:00Z").cents).toBe(
+      3000,
+    );
+    expect(price("2026-10-24T22:00:00Z", "2026-10-25T23:00:00Z").cents).toBe(
+      3000,
     );
   });
   it("rejects invalid and negative intervals", () => {

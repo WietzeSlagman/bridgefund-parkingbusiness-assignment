@@ -4,6 +4,7 @@ import {
   check,
   foreignKey,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -91,4 +92,34 @@ export const gateRequests = pgTable(
     sessionId: uuid("session_id").references(() => sessions.id),
   },
   (t) => [primaryKey({ columns: [t.gateId, t.requestId] })],
+);
+
+// Checkout bindings deliberately do not reference sessions: an unknown session
+// must still bind its request identity and be eligible for later reevaluation.
+export const checkoutRequests = pgTable(
+  "checkout_requests",
+  {
+    gateId: text("gate_id").notNull(),
+    requestId: uuid("request_id").notNull(),
+    sessionId: uuid("session_id").notNull(),
+    isResident: boolean("is_resident").notNull(),
+    quotedAmount: integer("quoted_amount"),
+    paidAtQuote: integer("paid_at_quote"),
+    response: jsonb(),
+  },
+  (t) => [primaryKey({ columns: [t.gateId, t.requestId] })],
+);
+
+// Only a future authenticated PB-05 implementation may insert confirmations.
+export const checkoutPayments = pgTable(
+  "checkout_payments",
+  {
+    paymentId: text("payment_id").primaryKey(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => sessions.id),
+    amount: integer().notNull(),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [check("checkout_payment_positive", sql`${t.amount} > 0`)],
 );

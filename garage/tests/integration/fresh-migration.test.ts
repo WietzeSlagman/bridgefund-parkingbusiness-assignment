@@ -34,6 +34,33 @@ it("migrates and seeds a freshly created isolated database, then repeats safely"
         expect(target.rows[0]).toEqual({ name, username: "garage_test" });
         await migrate(drizzle(client), { migrationsFolder: "./migrations" });
         await migrate(drizzle(client), { migrationsFolder: "./migrations" });
+        const columns = await client.query(
+          `select table_name, column_name from information_schema.columns
+           where table_schema = 'public' and table_name in
+             ('checkout_payments', 'checkout_requests', 'checkout_quotes')
+           order by table_name, column_name`,
+        );
+        expect(columns.rows).toEqual(
+          Object.entries({
+            checkout_payments: [
+              "amount",
+              "confirmed_at",
+              "payment_id",
+              "session_id",
+            ],
+            checkout_requests: [
+              "gate_id",
+              "is_resident",
+              "paid_at_quote",
+              "quoted_amount",
+              "request_id",
+              "response",
+              "session_id",
+            ],
+          }).flatMap(([table_name, names]) =>
+            names.map((column_name) => ({ table_name, column_name })),
+          ),
+        );
       } finally {
         client.release();
       }

@@ -530,3 +530,65 @@
 - Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, exploration agents and patch tool. Time and cost: unknown.
 - Reviewed payment requirements, the checkout contract and current implementation while PB-04 is in progress. Prepared an assignment-sized approach and identified payment validation and exception handling for discussion; no new product decisions confirmed and no PB-05 spec drafted yet.
 - Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-05 payment handling discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and search, patch tool. Time and cost: unknown.
+- The user accepted rejecting unexpected signed confirmations without marking the session paid, with a safe diagnostic, despite provider retries for up to 24 hours; this tradeoff must be documented in the PB-05 spec. The user rejected quote IDs and clarified that new payments for old sessions should be possible when they fulfill an outstanding balance; session closure and exact balance-matching semantics need clarification.
+- Mistakes: the prior discussion overemphasized quote-ID attribution rather than the user's intended session-balance approach. A journal entry was initially inserted at an earlier matching line; noticed the ambiguous patch context and moved it to the end. Inspection found internal quote IDs in PB-04 work in progress; no changes were made to that agent's files. No tests or database operations were performed.
+
+## 2026-11-09 — PB-05 session balance draft
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, patch tool and Git diff check. Time and cost: unknown.
+- The user clarified that multiple full-balance payments are allowed on an active session, but new payments for closed sessions are rejected and clearly logged. Drafted `specs/pb-05-payment-confirmation.md`, preserving idempotent retries after closure and identifying balance timing and PB-04 alignment as open. Documented the accepted 24-hour retry tradeoff.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-04 checkout implementation
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker, npm, Drizzle Kit, Vitest, TypeScript, ESLint and Prettier. Time and cost: unknown.
+- Added authenticated checkout, durable request bindings, issued quotes, confirmation storage and atomic release under the PB-03 building lock. Confirmation fixtures are internal database writes, not a payment endpoint; PB-05 remains unimplemented. Documented vendor assumptions, unsupported legacy payments and migration sequencing. Preserved concurrent PB-05 planning work.
+- Inspected the stopped test container's port, labels and tmpfs, started it and verified database/user before migrations and tests. Full suite: 17 files, 97 tests passed; lint, format check, type-check, build and diff whitespace check passed. Independent review and the gate/vendor integration remain outstanding.
+- Mistakes: initial Drizzle generation lacked the required URL; used a placeholder URL for offline generation. Generated composite foreign-key SQL preceded its unique index; inspection caught this and the migration order was corrected before application. Initial test-container readiness check ran before startup completed; repeated it successfully. The migrations are a pre-release sequence rather than an online upgrade from the intermediate schema.
+
+## 2026-11-09 — Checkout session payment state
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, Docker, npm, Drizzle Kit, Vitest, TypeScript, ESLint and Prettier. Time and cost: unknown.
+- Removed quote identifiers and payment-to-quote links from the checkout model. Fixed amounts and paid-total baselines belong to gate interactions; confirmed payments belong to sessions. The migration refuses populated interim checkout state rather than guessing baselines or destroying data. PB-05 confirmation validation and delayed-payment reconciliation remain unimplemented.
+- Verified the isolated test container's identity, loopback port and temporary storage. Full suite passed (17 files, 98 tests), as did lint, formatting, type-check and build. Independent review remains outstanding.
+- Mistakes: initially treated PB-04's ordinary quote-coverage requirement as mandating payment-to-quote attribution; the user corrected that interpretation. Initial noninteractive Drizzle generation could not answer a column prompt; used an interactive pseudo-terminal and inspected and corrected the generated migration before testing. An attempted guard change after applying the migration caused a bookkeeping hash mismatch; restored the already-applied migration and reran the checks rather than modifying database history.
+
+### 2026-11-09 — PB-04 pre-release migration consolidation
+
+- Agent: OpenAI gpt-6.1-terra; tools: repository inspection, Git, Docker, Drizzle Kit, npm and Vitest. Time and cost: unknown.
+- Replaced the uncommitted intermediate checkout migration sequence with a final-schema `0002`, preserved the committed baseline, relinked the final Drizzle snapshot and updated the fresh-migration test and operator warning. No data upgrade from an applied interim sequence is claimed.
+- Independently checked the test container's Compose identity, loopback port, tmpfs and database/user identity. Its database already recorded the old sequence, so preserved it; the fresh-migration test used only its own uniquely created and dropped database. That test passed, as did 47 unit tests, lint, formatting, type-check, build, Drizzle metadata check and offline generation (no schema changes). Full integration suite was not run against the incompatible existing bookkeeping. No mistakes identified; independent review remains outstanding.
+
+## 2026-11-09 — PB-05 independent specification review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and glob, Git status and history, patch tool. Time and cost: unknown.
+- Reviewed the draft against provider and gate notes, PB-04 and its in-progress implementation, separating ordinary-flow blockers from deferred exceptional risks. No application, specification or test changes; no tests or database operations were performed.
+- Mistakes: none known.
+
+## 2026-11-09 — Checkout payment window
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and search, patch tool. Time and cost: unknown.
+- The user chose to validate payment against the amount on a checkout request created within 15 minutes and reject and clearly log later confirmations. Updated the provisional PB-05 draft; its boundaries, renewal, overlaps and alignment with PB-04's current non-expiring amount remain open. The user asked whether failed attempts need any action beyond logging; durable duplicate handling remains for discussion.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-04 independent review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, shell, npm, TypeScript, ESLint, Prettier, Vitest and patch tool. Time and cost: unknown.
+- Reviewed committed PB-04 pricing and uncommitted checkout, migration, tests and PB-05 draft against the brief and integration contracts. Ran non-database checks; did not run migrations or database tests because an isolated target was not independently verified. Reported findings and limitations in the review response.
+- Mistake: twice placed this entry incorrectly; inspection identified the placement and it was corrected.
+
+## 2026-11-09 — Clean database integration verification
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, Docker, PostgreSQL, npm, Vitest, ESLint, Prettier, TypeScript and patch tool. Time and cost: unknown.
+- Inspected the consolidated checkout migration and metadata changes. With user authorization, verified the `parkingbusiness-foundation` Compose `test-db` container, PostgreSQL 17, loopback port 55433, tmpfs data directory, no mounts and `garage_test` database/user; dropped and recreated only `garage_test` on that isolated server. The development service is separately configured on port 55432 with persistent storage.
+- On the clean test database, the full suite passed (17 files, 98 tests), including fresh-database and repeated migration checks. Lint, format check, type-check, build and Git diff whitespace checks passed. Existing uncommitted work was preserved; no independent review was performed. Mistakes: none known.
+
+## 2026-11-09 — Provider timing assumption
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, patch tool. Time and cost: unknown.
+- The user chose a simple pilot assumption of near-instant provider confirmations and rejections, handled against an active checkout request for the session and amount. Added the assumption to the PB-05 draft; whether the earlier 15-minute checkout window remains the definition of active needs confirmation.
+- Mistake: earlier described delayed initial delivery as if documented; the provider notes establish retry behavior, not an initial-delivery guarantee. Corrected this in discussion. No application changes, tests or database operations were performed.
