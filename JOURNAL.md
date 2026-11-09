@@ -592,3 +592,51 @@
 - Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, patch tool. Time and cost: unknown.
 - The user chose a simple pilot assumption of near-instant provider confirmations and rejections, handled against an active checkout request for the session and amount. Added the assumption to the PB-05 draft; whether the earlier 15-minute checkout window remains the definition of active needs confirmation.
 - Mistake: earlier described delayed initial delivery as if documented; the provider notes establish retry behavior, not an initial-delivery guarantee. Corrected this in discussion. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — Active checkout amount
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user replaced the proposed 15-minute payment window with an active checkout amount that remains until a later one replaces it. Updated the provisional PB-05 draft, retaining the separate 15-minute post-payment grace and documenting duplicate-payment detection limits.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-05 user review
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and search, patch tool. Time and cost: unknown.
+- The user reviewed and accepted the PB-05 draft. Marked user review in its handoff while preserving outstanding replacement, failed-event and PB-04 alignment questions; clarified that recording a failed event is a proposal pending confirmation.
+- Mistake: earlier draft text stated failed-event persistence as definite while also listing it as an open decision; identified this on rereading and clarified it. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — Failed payment scope
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user chose not to store failed events, only log them. Updated PB-05 and documented that durable duplicate/conflict detection consequently applies to recorded successful payments, not failures. Inspected current checkout persistence to explain replacement and PB-04 alignment; failed-event acknowledgement remains open.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — Checkout replacement and failure acknowledgement
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user confirmed that a later checkout B replaces A, accepting the near-instant provider response assumption, and that failures for known completed payments should receive `204`. Updated the PB-05 draft; superseded-request HTTP behavior and exact failure handling for unknown sessions remain open, as does alignment with PB-04 implementation.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-05 session errors and checkout handoff
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user chose clear errors for malformed session IDs and `404` for well-formed unknown sessions, and requested that the checkout update live in the PB-05 spec. Documented proposed `400 INVALID_REQUEST`, `404 SESSION_NOT_FOUND`, and the session's current-amount replacement and locking handoff without modifying PB-04 implementation.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — Superseded checkout logging discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user proposed safely logging failed and prominently logging accepted activity for a superseded checkout, possibly returning `403` for later log-based reconciliation. Clarification is needed on whether this concerns checkout retries or provider notifications and how it interacts with successful-payment replay.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-06 occupancy draft
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, exploration agent, Git status and patch tool. Time and cost: unknown.
+- Drafted a small public occupancy spec using existing space categories and active sessions. Proposed an eligibility array because resident spaces accept both vehicle types; the representation and display interpretation remain for user confirmation. Preserved the existing PB-05 draft and journal work.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — Superseded checkout contract
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user accepted `409 CHECKOUT_SUPERSEDED` for a superseded pending checkout and structured investigation logs for unexpected payment confirmations, and asked for clear developer documentation of the checkout interaction. Updated the PB-05 draft with the example, failure acknowledgement and the successful replay exception.
+- Mistakes: none known. No application changes, tests or database operations were performed.
