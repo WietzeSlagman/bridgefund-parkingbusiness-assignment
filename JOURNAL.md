@@ -518,3 +518,15 @@
 - Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
 - The user pointed out that the terminal interacts with the payment provider, which then contacts our system. Updated the sequence diagram to show that interaction and distinguish webhook verification from idempotently recording the provider's reported result; the terminal-to-provider protocol remains unspecified.
 - Mistake: the previous diagram omitted the terminal-to-provider interaction and described recording an attempt in a misleading way. No application changes or tests run; Mermaid rendering was not verified.
+
+## 2026-11-09 — PB-04 pricing increment
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, npm, Vitest, TypeScript, ESLint and Prettier. Time and cost: unknown.
+- Verified the committed PB-04 specification and preserved the non-substantive working-tree handoff edit. Added an isolated started-hour pricing helper and unit tests; checkout, persistence, payment-state integration and PostgreSQL verification remain incomplete.
+- Focused pricing tests, type-check, build, formatting check and lint passed. Initial lint reported a missing-braces warning; corrected it and reran lint. No database operations were performed.
+
+## 2026-11-09 — PB-05 planning started
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, exploration agents and patch tool. Time and cost: unknown.
+- Reviewed payment requirements, the checkout contract and current implementation while PB-04 is in progress. Prepared an assignment-sized approach and identified payment validation and exception handling for discussion; no new product decisions confirmed and no PB-05 spec drafted yet.
+- Mistakes: none known. No application changes, tests or database operations were performed.

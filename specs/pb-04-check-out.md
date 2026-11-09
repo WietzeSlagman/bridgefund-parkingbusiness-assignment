@@ -140,4 +140,4 @@ Scope identity to stable authenticated gate ID, operation and request UUID. Cano
 
 ## Handoff Status
 
-**User-reviewed draft; not yet committed.** The user accepted the independent review's top-up and repeated-402 clarifications; the latest edits have not had a further independent review. Quote abandonment and delayed webhook matching are deferred pilot limitations, not solved workflows. Vendor capabilities are assumptions, not confirmations. PB-03 has outstanding independent review. This spec must land in a commit before PB-04 implementation, with explicit authorization; PB-04 alone cannot complete a paid checkout.
+Committed, The user accepted the independent review's top-up and repeated-402 clarifications; the latest edits have not had a further independent review. Quote abandonment and delayed webhook matching are deferred pilot limitations, not solved workflows. Vendor capabilities are assumptions, not confirmations. PB-03 has outstanding independent review. This spec must land in a commit before PB-04 implementation, with explicit authorization; PB-04 alone cannot complete a paid checkout.
