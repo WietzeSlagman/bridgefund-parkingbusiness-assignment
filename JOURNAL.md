@@ -676,3 +676,69 @@
 - Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git status, history and diff, patch tool. Time and cost: unknown.
 - Verified that PB-05 spec commit `a96c59b` exists and the working spec matches HEAD. The committed handoff still flags the latest amendments for review, PB-04 alignment and an unspecified unexpected-payment status; advised a development-agent review before implementing unresolved contract details.
 - Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-07 roadmap discussion
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, exploration agent and patch tool. Time and cost: unknown.
+- Reviewed the brief, integration notes and current implementation to discuss metrics, multi-building support and potential business models. No additional business decisions confirmed; deferred the separate PB-07 feature spec as requested.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-07 roadmap direction
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user selected metrics and multi-building for the roadmap, with multi-building as the future spec candidate; identified ParkingBusiness first and building managers later as the reporting audience, and preferred subscriptions and reservations. Drafted garage and SaaS business-model hypotheses in `ROADMAP.md`; priorities and feature-spec scope remain to be confirmed.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-08 multi-building draft
+
+- Agent: planning assistant with general-purpose subagent; model: `openai/gpt-6.1-terra` for planning assistant; subagent model unknown. Tools: repository read, subagent research and patch tool; subagent used Git whitespace check. Time and cost: unknown.
+- Removed the SaaS proposal and expanded the garage subscription and reservation business model at the user's request. Drafted a provisional PB-08 spec integrating existing flows; onboarding, tariff and other consequential decisions remain open rather than assumed.
+- Mistakes: none known. No application changes, tests, database operations or commits were performed.
+
+## 2026-11-09 — PB-08 administration decisions
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and patch tool. Time and cost: unknown.
+- The user chose an admin API for building onboarding and management, space additions and removals, and resident registration and deregistration; confirmed multiple layouts and tariffs and prioritized multi-building over metrics. Updated the roadmap and provisional spec; detailed API, tariff models and live-state rules remain open.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-08 activation and tariff decisions
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed building-specific started-hour rates and daily caps, check-in tariff retention for active sessions, rejection of occupied-space removal, and explicit activation after spaces, tariffs and gates are configured. Updated the provisional PB-08 spec; detailed contracts and other integration decisions remain open.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-08 layout and gate decisions
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user confirmed the existing three space categories with building-specific layouts, one configured building per authenticated gate, building IANA time zones, and preservation of the pilot tariff for sessions active during migration. Updated the provisional PB-08 spec; API and migration details remain open.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-08 admin and live changes
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose deployment-managed gate secrets, one ParkingBusiness-wide admin credential, and live space and tariff changes with atomic rejection of invalid changes. Updated the provisional PB-08 spec; secret synchronization and detailed API contracts remain open.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-08 gate identity
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user clarified that a gate represents a physical access point and cannot move between buildings. Updated PB-08 to require immutable building association, rejection of reassignment and preservation across credential rotation; retirement and identity reuse remain open.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
+## 2026-11-09 — PB-05 implementation prerequisite check
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, search, Git and patch tool. Time and cost: unknown.
+- Verified that `76bdf8e` is an ancestor of HEAD and the PB-05 spec matches it. The committed spec still explicitly leaves the open amount in delayed renewal unresolved; stopped implementation and returned that payment-state decision for clarification rather than inventing it. Inspected existing checkout payment and quote state and the verification procedure.
+- Mistakes: none known. No application changes, tests, simulator calls or database operations were performed.
+
+## 2026-11-09 — PB-05 implementation and reassessment
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Docker, npm, Drizzle Kit, Vitest, TypeScript, ESLint, Prettier and the supplied simulator. Time and cost: unknown.
+- The user correctly challenged my prior blocker: the operative committed spec rules specify that the last displayed amount remains current until replaced, and accept the equal-amount ambiguity as a pilot risk. The example's residual open-question wording was not a concrete implementation blocker. Implemented raw signed confirmations, durable payment deduplication and checkout replacement under the building lock, with conservative migration protection for old unordered quotes.
+- Verified the isolated test container's temporary storage, loopback port, database and user; ran backend tests and configured checks, plus the simulator scenario. Initial generation failed without the required DATABASE_URL; initial lint exposed a regex rule and unsafe test assertions; initial full tests exposed missing webhook configuration in child-server fixtures and a migration-schema expectation; the first simulator run lacked its dependencies. Corrected these issues and reran checks. Independent review and comprehensive fault-injection coverage for payment commits remain outstanding.
+
+## 2026-11-09 — PB-05 independent review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript, Vitest and patch tool. Time and cost: unknown.
+- Reviewed uncommitted PB-05 against the committed specification and related checkout, migration and tests. Lint, formatting, type-check, build and unit tests passed. Did not run database-mutating tests without independently verifying isolation. Findings and remaining risks are in the review response.
+- Mistakes: none known. Appended this required entry despite the user's no-file-modifications request; no application, test, spec or configuration changes.

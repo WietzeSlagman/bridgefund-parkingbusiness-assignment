@@ -4,8 +4,8 @@ PB-03 check-in and resident administration are implemented but are **not ready
 for deployment**. The three latest independent-review findings have fixes and
 PostgreSQL-backed regression tests; the fixes have not had a further independent
 review. The latest independent review did not independently run database tests.
-PB-04 checkout and PB-06 occupancy are implemented as a pilot; the payment
-webhook does not yet exist.
+PB-04 checkout, PB-05 payment confirmation and PB-06 occupancy are implemented
+as a pilot, subject to the limitations below and independent review.
 See [PLAN.md](PLAN.md), [the checkout spec](specs/pb-04-check-out.md), and
 [BRIEF.md](BRIEF.md).
 The per-attempt timer closes an acquired database connection on timeout and
@@ -23,10 +23,27 @@ original response. New interactions require new IDs. This pilot contract and
 rechecking behavior have not been confirmed by the gate vendor; it assumes that
 the gate can correlate late responses and abandons old interactions correctly.
 
-PB-04 has no endpoint for recording payment: paid exit cannot be completed until
-PB-05 implements authenticated provider confirmations. The current schema holds
-fixed interaction amounts and session payment records for that later integration,
-which must take the building lock first and validate amount, currency and identity.
+The signed `POST /webhooks/payments` records successful full-balance payments;
+the webhook never releases a space. Configure a strong `WEBHOOK_SECRET` shared
+with the provider, distinct from other credentials. It verifies exactly one
+lowercase hexadecimal HMAC-SHA256 over the raw JSON bytes; unsigned legacy
+requests are rejected. Identical successful payment IDs are idempotent, including
+after checkout; conflicting IDs and unexpected amounts return 409. Failed events
+are logged without persistence. Operators must investigate structured payment
+diagnostics manually; logs do not reconcile or refund external charges. The
+provider may retry rejected events for 24 hours.
+
+Checkout B replaces the current amount: if A displayed EUR 5 and B displays
+EUR 10, retrying A returns `409 CHECKOUT_SUPERSEDED`, not EUR 5. A previously
+committed `200` still replays. Gate handling of 409 is not vendor-confirmed.
+Unmatched signed confirmations are rejected and logged for investigation. The
+pilot assumes near-instant delivery; an old payment equal to a new balance is
+indistinguishable from the intended payment, and may be accepted.
+The schema holds fixed interaction amounts and session payment records, with a
+shared building lock for checkout and confirmations.
+The current payable amount is held on the current checkout request; PostgreSQL
+enforces at most one current request per session. Payment consumes that current
+request, and a later top-up makes a request current again.
 An interaction stores the session's paid total when its amount is issued; a later
 valid session payment indicates ordinary coverage, not payment-to-quote attribution.
 The provider's unsigned legacy-terminal requests are intentionally unsupported:
@@ -95,6 +112,7 @@ following environment variables, with each placeholder replaced by a different,
 randomly generated secret. Keep real keys out of source control and shell history.
 
 ```text
+WEBHOOK_SECRET=<strong-unique-provider-secret>
 PARKING_BUILDINGS={"PB-AMS-2M8D":50}
 PARKING_KEYS={"entrance-1":["<key>"],"entrance-2":["<key>"],"exit-1":["<key>"],"exit-2":["<key>"],"admin":["<key>"]}
 ```
@@ -126,8 +144,8 @@ npm run dev
 ```
 
 Or run `npm run build` followed by `npm start`. An HTTP request to `/` returns a
-JSON 404. There is no global body parser; future webhook work must install a raw
-parser before any JSON parser and authenticate the original bytes.
+JSON 404. There is no global body parser; the webhook installs a route-specific
+raw parser and authenticates the original bytes.
 
 ## Verification and migrations
 
@@ -169,10 +187,25 @@ npm run build
 npm test
 ```
 
+To exercise the supplied simulator against an isolated in-process server and
+the verified test database, first run `npm ci` in `simulator/`, then run from
+`garage/` with the same test URL: `RUN_PAYMENT_SIMULATOR=1 npx vitest run
+--no-file-parallelism tests/integration/payments.test.ts`. Use only local test
+secrets and trusted destinations; see the simulator dependency risks above.
+
 The initial migration is deliberately a no-op, apart from Drizzle's migration
 bookkeeping. For later schema changes, update `src/db/schema.ts`, run
 `npm run db:generate`, inspect the versioned SQL and metadata, and test the
 migration against the isolated test database before applying it elsewhere.
+Migration `0003` deliberately refuses to run if active sessions have existing
+checkout amounts: older records do not preserve replacement ordering. Stop all
+instances and obtain an operator recovery decision for these sessions; do not
+delete records or guess the current amount to force the migration.
+Migration `0004` transfers an existing `0003` session amount to its matching
+current request only when the match is unambiguous; otherwise it aborts for
+operator investigation. Stop all old application instances before migrating;
+old and new versions cannot safely run together. The migration does not discard
+or automatically repair ambiguous records.
 PB-04's unreleased `0002` creates the final checkout schema directly. It replaces
 an earlier uncommitted `0002`–`0005` sequence, not an upgrade from it. Databases
 that applied any of that sequence have incompatible migration bookkeeping and
