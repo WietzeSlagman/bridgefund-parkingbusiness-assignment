@@ -15,6 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run --no-file-parallelism",
+    "openapi:generate": "tsx src/openapi/generate.ts",
+    "openapi:check": "tsx src/openapi/generate.ts --check",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:update-buildings": "tsx src/update-buildings.ts"

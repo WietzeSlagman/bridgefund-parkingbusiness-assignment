@@ -30,6 +30,7 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run build
+      - run: npm run openapi:check
       - name: Start isolated test database
         run: docker compose -p parkingbusiness-ci up -d --wait test-db
       - name: Verify test database identity

@@ -126,6 +126,15 @@ describe("PB-06 occupancy", () => {
       error: { code: "BUILDING_NOT_FOUND", message: "Building not found" },
     });
   });
+  it("retains case-insensitive routes and optional trailing slashes", async () => {
+    const list = await request(app).get(`/OCCUPANCY/${empty}/`);
+    const counts = await request(app).get(`/OCCUPANCY/${empty}/AVAILABILITY/`);
+    expect(list.status).toBe(200);
+    expect(list.body).toEqual([]);
+    expect(counts.status).toBe(200);
+    expect(counts.body).toEqual({ resident: 0, car: 0, motorcycle: 0 });
+    expect(counts.headers["cache-control"]).toBe("no-store");
+  });
   it("uses a point-in-time snapshot during an uncommitted allocation", async () => {
     const client = await pool.connect();
     try {
