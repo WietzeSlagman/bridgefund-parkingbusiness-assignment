@@ -1,5 +1,27 @@
 # Journal
 
+## 2026-11-10 — PB-04/PB-05 supersession review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm and Vitest. Time and cost: unknown.
+- Compared committed and working-tree specs with checkout, webhook, migrations and tests for the PB-08 handoff; distinguished implemented replacement from uncommitted alignment and vendor/deployment limitations. Ran pricing unit tests and Git whitespace check; did not run database tests without independently verified isolation. Mistakes: none known.
+
+## 2026-11-10 — Documentation handoff
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: delegated development agent and patch tool. Time and cost: unknown.
+- At the user's request, referred landed PB-05 status and PB-04/PB-05 specification alignment to the development workflow. The development agent reported documentation updates and a passing `git diff --check`; independent review remains outstanding. Mistakes: none known.
+
+## 2026-11-10 — Review clarification
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read and Git. Time and cost: unknown.
+- Confirmed that the README and PB-05 spec document the accepted gate, payment timing and unsigned terminal limitations, and that PB-04 still contradicts PB-05 on replacement. The previous review unnecessarily repeated accepted decisions as findings; they are residual deployment assumptions, not new defects.
+- No project documentation was edited: the review-only boundary requires implementation and spec amendments to go through the development and planning workflows. Mistakes: the prior review did not adequately distinguish accepted assumptions from new findings.
+
+## 2026-11-10 — Landed PB-05 rereview
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, parallel review agents, npm, Vitest, ESLint, TypeScript and Prettier. Time and cost: unknown.
+- Reviewed commit `b1ded0c` against the brief and vendor notes. Highlighted the accepted but unverified gate, payment-attribution and legacy-terminal assumptions, a clock-skew risk, and remaining documentation and PB-07 handoff gaps. Review agents passed static checks, build and unit tests; no database test or simulator was independently run without verified isolation.
+- Observed concurrent changes to `ROADMAP.md` and the PB-08 spec during review; preserved them and assessed their revised handoff status cautiously. Mistakes: none known.
+
 ## 2026-11-09 — Review follow-up on documented decisions
 
 - Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git and parallel exploration/development agents. Time and cost: unknown.
@@ -759,6 +781,12 @@
 - Reviewed existing contracts and implementation to propose a consolidated set of defaults for completing PB-08, separating user approval from outstanding vendor confirmation and deployment risks. No additional product decisions confirmed.
 - Mistakes: none known. No application changes, tests or database operations were performed.
 
+## 2026-11-09 — PB-08 handoff draft
+
+- Agent: planning assistant with general-purpose subagent; model: `openai/gpt-6.1-terra` for planning assistant; subagent model unknown. Tools: repository read, subagent and patch tool; subagent used Git whitespace check. Time and cost: unknown.
+- The user approved the consolidated defaults. Expanded PB-08 into detailed API, migration, integration and verification contracts and updated roadmap status; retained cross-spec and migration blockers and distinguished vendor deployment prerequisites.
+- Mistakes: none known. No application changes, tests, database operations or commits were performed.
+
 ## 2026-11-09 — PB-05 implementation prerequisite check
 
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, search, Git and patch tool. Time and cost: unknown.
@@ -824,3 +852,27 @@
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, npm and Vitest. Time and cost: unknown.
 - Compared setup, pricing, payment behavior and migration descriptions with the current working tree and committed history. Documented pricing and the brief's conflicting example, distinguished committed migrations from in-progress PB-05 migrations and warned about previously applied interim hashes. Preserved existing work and did not resolve gate/provider assumptions.
 - The focused pricing unit tests passed; Git diff whitespace check passed. No database tests or migrations were run. Mistake: the first patch failed on mismatched context; reread and applied smaller patches.
+
+## 2026-11-10 — Assignment rereview after PB-05
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, Docker Compose, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Compared the committed assignment, delivery documentation and integration assumptions with the brief and current configuration. Respected the previously accepted manual-only dependency audit. Lint, format check, typecheck and 47 unit tests passed; database tests were not run because the test container was stopped and its active isolation could not be verified. Findings are reported in the review response.
+- Mistakes: none known.
+
+## 2026-11-10 — Landed PB-05 independent re-review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript, Vitest and patch tool. Time and cost: unknown.
+- Reviewed landed payment and checkout behavior, integration assumptions, concurrency, migrations, tests and spec-first history. Lint, formatting, type-check, build and 47 unit tests passed. Did not run database tests or migrations because an isolated database target was not independently established; reported findings and integration limitations in the review response.
+- Mistakes: none known. No application, test, specification or configuration files were changed.
+
+## 2026-11-10 — Landed PB-05 documentation alignment
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git and patch tool. Time and cost: unknown.
+- Updated status and migration documentation and retrospectively amended PB-04 to match the accepted current-balance replacement contract. Checked closed-session precedence against code and the existing integration test; documented accepted gate, timing, attribution and unsigned-terminal risks without treating them as new decisions. Preserved concurrent roadmap, PB-08 and journal changes.
+- Documentation consistency was checked against source, tests, specs and migration metadata; no application or database tests were run. Independent review of this amendment remains outstanding. Mistake: an initial PB-05 patch did not match its context; reapplied with the complete matching line.
+
+## 2026-11-10 — PB-08 alignment review follow-up
+
+- Agent: planning assistant with independent review agent; model: `openai/gpt-6.1-terra` for planning assistant; reviewer model unknown. Tools: review agent, repository read and patch tool. Time and cost: unknown.
+- The review found checkout replacement implemented and aligned between PB-05 and the working-tree PB-04 amendment; the amendment remains uncommitted. Corrected stale PB-08 conflict wording and retained the spec checkpoint, integration verification and external risks. The reviewer ran pricing unit tests and a whitespace check, but did not independently run database tests.
+- Mistake: PB-08 incorrectly described the working-tree PB-04 contract as still conflicting; the independent review identified the stale statement. No application changes or database operations were performed by the planning assistant.
