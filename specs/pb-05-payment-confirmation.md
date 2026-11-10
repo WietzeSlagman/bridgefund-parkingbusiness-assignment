@@ -20,7 +20,7 @@ PB-05 in `BRIEF.md`: record the provider's payment result so an active parking s
 ## Sources and Dependencies
 
 - `BRIEF.md` PB-05; `docs/payment-provider.md`; `docs/gates.md`; `simulator/README.md`.
-- `specs/pb-04-check-out.md`: fixed displayed amount, grace, checkout and release. PB-04 is in progress; its actual persistence and integration interface must be checked before implementing PB-05.
+- `specs/pb-04-check-out.md`: fixed displayed amount, grace, checkout and release, amended to align with landed PB-05 replacement behavior.
 - `docs/verification-procedure.md`; current PostgreSQL schema and existing building-lock ordering.
 - User decisions recorded in `JOURNAL.md`: signed-only calls, session-based balances, multiple payments for active sessions, no new payments for closed sessions, and rejection of unexpected confirmations despite provider retries.
 
@@ -107,7 +107,7 @@ Example: an active session receives a 500-cent outstanding amount; `pay-1` for 5
 ### Required checkout update for PB-05
 
 - Extend PB-04 checkout so that issuing a later payable checkout request B atomically replaces request A as the session's current displayed amount; a later top-up issued on the same request likewise becomes the current amount. This is session state, not a provider-facing quote ID.
-- A retry of pending A cannot reactivate or offer its replaced amount for payment and returns `409 CHECKOUT_SUPERSEDED`; a previously committed `200` continues to replay as required by PB-04. Payment validation reads the same current amount under compatible locking. These requirements amend the PB-04 handoff; they are not a claim that its current implementation already does this.
+- A retry of pending A while the session is active cannot reactivate its replaced amount and returns `409 CHECKOUT_SUPERSEDED`; after closure `409 EVENT_CLOSED` takes precedence. A previously committed `200` continues to replay. Payment validation reads the same current amount under compatible locking. These requirements are implemented and align the PB-04 handoff.
 - The development agent must clearly describe this interaction in application/operator documentation: A displays EUR 5; B later replaces it with EUR 10; a retry of A receives `409` rather than displaying EUR 5 again; an unmatched signed payment is rejected and logged for manual investigation. Explain the accepted near-instant-delivery assumption, the unverified gate behavior on `409`, and that same-ID replay of an already committed `200` remains successful. Do not imply logs automatically reconcile or refund a payment.
 
 ## Verification
@@ -128,4 +128,4 @@ Example: an active session receives a 500-cent outstanding amount; `pay-1` for 5
 
 ## Handoff Status
 
-**User-reviewed; provisional for implementation.** The user accepted the draft on 2026-11-09 and subsequently confirmed replacement, superseded-checkout `409`, failure acknowledgement, validation, replay and error responses. PB-04 implementation alignment, delayed-payment ambiguity and vendor gate behavior remain open. The latest amendments need review and must be committed before PB-05 implementation; no commit is authorized here.
+**Landed pilot implementation.** The user accepted the draft on 2026-11-09 and subsequently confirmed replacement, superseded-checkout `409`, failure acknowledgement, validation, replay and error responses. Spec decisions were committed before implementation `b1ded0c`. The landed rereview did not independently run database tests or the simulator. PB-04's retrospective alignment amendment is uncommitted and has not been independently reviewed. Delayed-payment attribution and vendor gate behavior remain accepted pilot limitations and deployment caveats.
