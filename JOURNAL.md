@@ -1,5 +1,31 @@
 # Journal
 
+## 2026-11-10 — Load runner review corrections
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, TypeScript, ESLint, Prettier, Vitest, Docker Compose, PostgreSQL and simulator. Time and cost: unknown.
+- Added visitor-car space range checks and boundary tests. Scoped the pricing claim to positive integer EUR quotes rather than asserting an exact tariff across elapsed-hour or Amsterdam-day boundaries. Added instrumented fake-API tests proving a 403 or wrong target identity causes no occupancy or lifecycle requests, and that an ineligible space prevents checkout; the real-API wrong-token test now requires the specific 403 guard failure.
+- Repeated the demo, 80-session baseline and two real-API tests on a freshly migrated, verified tmpfs load container; 84 sessions and payments, zero active. Updated baseline results and removed only the owned container and network. Lint, formatting, typecheck, build, OpenAPI check and 76 unit/guard tests passed. Existing test database was not used; the full PostgreSQL suite was not run.
+- Mistake: the first guard fix discarded all non-2xx response bodies, breaking the expected JSON `402` quote; the real demo caught it. Changed parsing to accept JSON responses including `402`, while permitting the guard's plain-text `403`, and reran the demo, baseline and tests.
+
+## 2026-11-10 — Independent demo and load tooling review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript, Vitest and patch. Time and cost: unknown.
+- Reviewed the uncommitted load tooling, simulator integration, isolation instructions, baseline and tests. Lint, format check, typecheck, OpenAPI check and three safety unit tests passed. Did not run database tests, migrations, build or load traffic: the requested review was read-only and a disposable target was not independently verified. No application fixes were made.
+- Mistakes: none known. The required journal entry is the only review-side file change, despite the requested read-only review.
+
+## 2026-11-10 — Isolated demo and load baseline follow-up
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, TypeScript, ESLint, Prettier, Vitest, Docker Compose, PostgreSQL and the supplied simulator. Time and cost: unknown.
+- Completed the manual load-only API and runners, with loopback and dedicated-URL guards, exclusive empty-garage checks, bounded batch concurrency, signed raw payment bodies and simulator status checks. Recorded one measured 80-session baseline and limitations. Verified the owned container's project, tmpfs, loopback mapping and database/user before migration; destroyed only that container and network after verifying zero active sessions. Existing development and test containers were not reset or migrated.
+- Lint, format, typecheck, build, OpenAPI check, 72 unit tests and two opt-in real-API runner tests passed; the simulator demo and baseline passed. Full existing PostgreSQL suite was not run: its guard targets port 55433, occupied by the pre-existing test container which the user excluded from disposable use. Backend audit at high threshold passed with 11 moderate findings; simulator audit failed with two high findings.
+- Mistakes: the first response stopped at partial setup without a genuine blocker. Initial lint caught an unnecessary assertion; fixed using ESLint and reran checks. A diagnostic query guessed a nonexistent session column; schema inspection identified `active`, and the corrected query confirmed 84 sessions, 84 payments and none active.
+
+## 2026-11-10 — Disposable load database setup, partial
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Docker Compose and PostgreSQL. Time and cost: unknown.
+- Added a separately started, loopback-only PostgreSQL load service with tmpfs and documented identity verification and ownership-aware cleanup. Verified an unused Compose project, started it, checked its mapping, tmpfs and database/user, and removed that project's container and network. No existing databases were migrated or reset.
+- The requested demo, load runner, automated tests and measured baseline remain incomplete; no load or application verification was performed. Mistakes: none known.
+
 ## 2026-11-10 — OpenAPI review corrections
 
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, TypeScript, ESLint, Prettier, Vitest, Supertest and Docker. Time and cost: unknown.
@@ -949,3 +975,40 @@
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Node.js, npm, TypeScript, ESLint, Prettier, Vitest and Docker. Time and cost: unknown.
 - Converted check-in and checkout to typed outcomes and router-level HTTP mappings, retaining checkout's stored successful payload for exact replay and leaving transaction ordering and schema unchanged. Added mapping tests and adapted the existing direct checkout service assertion; no migration or migration test was added.
 - Verified the test container's tmpfs, loopback port and database/user. Lint, formatting, typecheck, build, OpenAPI check and focused tests passed; the full PostgreSQL-backed suite passed with 133 tests and one skipped. Mistakes: the first typecheck caught an existing service test still asserting HTTP status; updated it to assert the business outcome. The first full run used a nonmatching local test password and failed authentication; reran with the verified container's configured credential without printing it.
+
+## 2026-11-10 — Occupancy frontend discussion
+
+- Agent: planning assistant with exploration agent; model: `openai/gpt-6.1-terra` for planning assistant; exploration agent model unknown. Tools: repository read, exploration agent and patch tool. Time and cost: unknown.
+- Reviewed the assignment and existing occupancy contract and proposed a small separate-folder demo display; framework and presentation remain for user confirmation. No application changes or tests performed. Mistakes: none known.
+
+## 2026-11-10 — Frontend scope clarification
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- The user chose a simple React frontend in a separate folder, showing counts, full/available status and updates, independent of the user stories. Whether updates must identify actual check-ins and checkouts remains to be clarified against the occupancy API's snapshot-only data.
+- Mistakes: none known. No application changes or tests performed.
+
+## 2026-11-10 — Isolated load environment
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Node.js, npm, Vitest, ESLint, TypeScript, Prettier, Docker Compose and PostgreSQL. Time and cost: unknown.
+- Added explicit load-only environment loading and a guarded manual migration command. Derived the URL from the disposable password while retaining explicit URL precedence; documented process precedence and independent container verification. Preserved existing uncommitted load work. No application behavior or dependencies changed.
+- Verified a newly owned load container's project, loopback mapping, tmpfs, database and user before migrating; the demo, four-session load run and two real-API tests passed. Removed only that container and network. Focused unit/guard tests and configured static checks passed; the full database suite was not run against the existing test container.
+- Mistakes: a password-encoding test exposed that URL.password leaves literal percent signs unescaped; encoded before setting the URL and reran tests. The command running the live checks timed out after all checks passed because its background npm wrapper did not exit promptly; confirmed the API process was gone before cleanup.
+
+## 2026-11-10 — Separate entrance display
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Node.js, npm, Vite, React, Vitest and Prettier. Time and cost: unknown.
+- Added a standalone React display using public snapshot counts, a local proxy, bounded polling and timeouts, stale/error states and explicitly inferred differences. Documented setup and limitations; preserved existing load-tooling changes. Frontend format check, four tests, build and full dependency audit passed. No database or real-browser/backend end-to-end test was run.
+- Mistakes: the initial test run caught a missing React import for JSX; fixed it. Formatting initially included generated build output on the subsequent run; added a frontend ignore file and repeated the checks.
+
+## 2026-11-10 — Demo quickstart alignment
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, Vitest, ESLint, Prettier, TypeScript, Docker Compose, PostgreSQL and simulator. Time and cost: unknown.
+- Reworked the quick demo around the isolated load environment, separated persistent development and test setup, renamed the uncommitted API script and added a script configuration test. Preserved other uncommitted work; no compatibility alias for the not-yet-committed name.
+- Lint, format, typecheck, build, OpenAPI check and 14 focused tests passed. On a newly owned, verified tmpfs database the migration, renamed API, demo, four-session load run and two real-API tests passed; removed only that project. Full test suite was not run against the pre-existing test database. The combined live-check shell timed out after all checks passed while waiting for its npm wrapper; verified the API port was closed before cleanup. Fresh-clone dependency installation was not rerun.
+- Mistakes: an initial patch included a nonexistent context heading and was rejected without changes; reapplied in smaller patches.
+
+## 2026-11-10 — Frontend visual refresh
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, web fetch, patch, npm, Vitest, Vite and Prettier. Time and cost: unknown.
+- Refreshed the existing display with a responsive green palette, larger typography, cards and visible keyboard focus, preserving polling and availability semantics. The BridgeFund page was fetched as text, but its visual palette could not be reliably verified; the colors are an interpretation, not an exact brand match. No assets or dependencies added.
+- Frontend tests (four), build and format check passed. No real-browser visual or assistive-technology testing was performed. Mistakes: none known.

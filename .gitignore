@@ -3,5 +3,6 @@ node_modules/
 .env.*
 !.env.example
 !.env.agent.example
+!.env.load.example
 dist/
 coverage/

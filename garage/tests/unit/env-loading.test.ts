@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parse } from "dotenv";
@@ -6,6 +6,19 @@ import { loadConfig } from "../../src/config/index.js";
 import { loadParkingConfig } from "../../src/parking/config.js";
 
 describe("local environment examples", () => {
+  it("exposes the demo/load API script with the same explicit environment as the runners", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf8")) as {
+      scripts: Record<string, string>;
+    };
+    expect(pkg.scripts["start:demo-load-api"]).toBe(
+      "node --env-file=.env.load --import tsx src/tools/load-api.ts",
+    );
+    for (const script of ["start:demo", "start:load-test", "db:migrate:load"]) {
+      expect(pkg.scripts[script]).toContain("--env-file=.env.load");
+    }
+    expect(pkg.scripts["start:load-api"]).toBeUndefined();
+  });
+
   it("provides internally consistent, valid throwaway configuration", () => {
     const env = parse(readFileSync(".env.example"));
     expect(loadConfig(env).port).toBe(3000);
@@ -40,5 +53,43 @@ describe("local environment examples", () => {
       },
     );
     expect(result).toBe("true");
+  });
+
+  it("loads the separate load example explicitly with process values taking precedence", () => {
+    const env = parse(readFileSync(".env.load.example"));
+    expect(env.LOAD_DB_PASSWORD).toBeTruthy();
+    expect(env.LOAD_DATABASE_URL).toBeUndefined();
+    const result = execFileSync(
+      process.execPath,
+      [
+        "--env-file=.env.load.example",
+        "--eval",
+        "process.stdout.write(JSON.stringify([process.env.LOAD_DB_PASSWORD, process.env.LOAD_RUN_TOKEN]))",
+      ],
+      {
+        env: { LOAD_DB_PASSWORD: "", LOAD_RUN_TOKEN: "exported" },
+        encoding: "utf8",
+      },
+    );
+    expect(JSON.parse(result)).toEqual(["", "exported"]);
+  });
+
+  it("rejects an explicit unsafe migration URL before invoking Drizzle", () => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--env-file=.env.load.example",
+        "--import",
+        "tsx",
+        "src/tools/migrate-load.ts",
+      ],
+      {
+        env: { ...process.env, LOAD_DATABASE_URL: "postgresql://remote/db" },
+        encoding: "utf8",
+      },
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("migration not started");
+    expect(result.stdout).not.toContain("drizzle");
   });
 });

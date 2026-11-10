@@ -16,33 +16,93 @@ validates strict HTTP boundary schemas without coercion, reusing the shared plat
 normalizer. Vitest
 exercises HTTP and database integration. The lockfile pins installed packages.
 
-## Quickstart and configuration
+## Quick demo: disposable database
 
-Clone with submodules as below, then from the repository root:
+Clone with `git clone --recurse-submodules <assignment-repository-url>` (shared
+agent context requires private repository access; see below). From the repository
+root install backend and supplied simulator dependencies:
 
 ```sh
 cd garage
 npm ci
+cd ../simulator
+npm ci
+cd ../garage
 ```
 
-### Quick local demo (public throwaway credentials)
+The simulator has known vulnerable dependencies; use only trusted local data and
+destinations. This demo uses public throwaway credentials and no real data. It
+requires free loopback ports **55434** (PostgreSQL) and **3301** (API); do not
+stop someone else's services. The scripts do **not** automatically start a database.
+Do not run the demo or load test against a shared API or database.
 
-From `garage/`, copy the example and start the databases:
+From `garage/`, inspect projects and choose a unique unused project name (replace
+the example name below after checking). Clear unintended `LOAD_*` exports in each
+terminal: exports, even empty ones, override `.env.load`. Avoid exporting
+`LOAD_DATABASE_URL` in this simple setup. Do not overwrite an existing `.env.load`.
+
+```sh
+docker compose ls -a
+cp .env.load.example .env.load
+export LOAD_PROJECT=parkingbusiness-load-yourname
+docker compose --env-file .env.load -p "$LOAD_PROJECT" -f compose.load.yaml up -d --wait
+```
+
+Before migrating, **verify ownership, loopback mapping, tmpfs storage, database and
+user, and effective load settings** using the commands and cautions in
+[load database setup](docs/load-database.md). Inspection can reveal credentials;
+do not share its output. The expected database and user are `garage_load`; identity
+alone does not establish container ownership. Then, still in `garage/`:
+
+```sh
+npm run db:migrate:load
+npm run start:demo-load-api
+```
+
+Leave the API running. In a second terminal from the repository root:
+
+```sh
+cd garage
+npm run start:demo
+# Optional, after the demo finishes and with exclusive use of the empty garage:
+LOAD_SESSIONS=80 LOAD_CONCURRENCY=8 npm run start:load-test
+```
+
+Both runners use `.env.load`, the API on `127.0.0.1:3301` and the same disposable
+database, not the normal development API. A successful demo checks the supplied
+simulator's declined/retry scenario and four HTTP 204 results. A failed or interrupted
+run can leave active sessions; do not retry against a nonempty garage. See
+[load database setup](docs/load-database.md) for checks, limitations and recovery.
+Stop the API with Ctrl-C. After confirming the project and container are still yours,
+remove only that temporary service (this destroys its data):
+
+```sh
+docker compose --env-file .env.load -p "$LOAD_PROJECT" -f compose.load.yaml down
+```
+
+Run cleanup in the first shell where `LOAD_PROJECT` was exported, not an unrelated
+project. The `.env.load` file remains for future use; remove it manually if desired.
+
+## Persistent local development setup
+
+This is separate from the demo above. From `garage/`, install dependencies as
+above, then, if `.env` does not already exist:
 
 ```sh
 cp .env.example .env
 docker compose -p parkingbusiness-foundation up -d --wait
 ```
 
-The example contains publicly known passwords and API keys, **only for an
-isolated local demo**. Never use them for a deployed service, real data or an
+The example contains publicly known passwords and API keys, **only for isolated
+local development**. Never use them for a deployed service, real data or an
 untrusted network. Shell exports override file values, including empty exports;
 clear unintended exports before using this example. If overriding either database
 password, also update the matching URL; Compose and the application read these
 as separate variables.
 
-The development database is persisted in a Docker volume on loopback port
-55432. The separate test server uses loopback port 55433 and temporary storage;
+The Compose command above starts both servers. The development database is
+persisted in a Docker volume on loopback port 55432. The separate integration
+test server uses loopback port 55433 and temporary storage;
 its data disappears when its container is removed. These ports must be free.
 Compose initializes a password only when a database is first created; changing
 the environment variable does not rotate an existing database password. Do not
@@ -69,7 +129,7 @@ PARKING_KEYS={"entrance-1":["<key-1>"],"entrance-2":["<key-2>"],"exit-1":["<key-
 
 Export each variable so child processes inherit it. Use different random keys
 for each identity and the webhook. `.env` and `.env.*` are ignored except the
-two examples; never put real secrets in the examples or source control. The
+tracked examples; never put real secrets in the examples or source control. The
 server and Drizzle commands load `garage/.env` through dotenv without overriding
 the environment; Compose also prefers exported variables over its `.env` file.
 Run these commands from `garage/`. Vitest does not load `.env`: export
@@ -106,16 +166,45 @@ supported.
 
 ## Run and operate
 
-From `garage/`, verify `DATABASE_URL` targets the intended database, then run:
+For the persistent development setup, from `garage/`, verify `DATABASE_URL`
+targets the intended development database, then run:
 
 ```sh
 npm run db:migrate
 npm run dev
 ```
 
-Or run `npm run build` followed by `npm start`. An HTTP request to `/` returns a
+Or run `npm run build` followed by `npm start`. The development API normally
+uses port 3000, not the demo/load port 3301. An HTTP request to `/` returns a
 JSON 404. There is no global body parser; the webhook installs a route-specific
 raw parser and authenticates the original bytes.
+
+### Entrance display
+
+The optional separate React display uses the public pilot availability endpoint;
+it needs no credentials in the browser. Start the persistent development API on
+port 3000 as above first. In a second terminal from the repository root:
+
+```sh
+cd frontend
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Vite (normally http://127.0.0.1:5173). Its
+development proxy forwards `/occupancy` to `http://127.0.0.1:3000`. If the API
+uses another address, adjust `frontend/vite.config.js` for local development.
+The proxy is not included in the production build: a deployment must serve the
+built files with a same-origin proxy for `/occupancy` to the API. The display is
+not a deployment-ready public server. Counts are recorded free allocations, not
+physical presence or reservations; zero can also mean no configured spaces.
+Updates poll approximately every five seconds; errors or readings at least 15
+seconds old are marked stale. Recent changes are differences between successful
+readings, not vehicle events, and intermediate changes can be missed.
+
+From `frontend/`, run `npm test`, `npm run format:check`, `npm run build`, and
+`npm audit` for frontend verification. There are no frontend lint or typecheck
+scripts. These tests do not require a database.
 
 The generated API contract is [`garage/openapi/v1.json`](garage/openapi/v1.json);
 there is no documentation HTTP endpoint and the artifact version does not add a
@@ -130,6 +219,10 @@ registry before retrying an interrupted COMMIT. Investigate payment diagnostics
 manually; logs do not reconcile or refund external charges.
 
 ## Verification and migrations
+
+For the manual isolated demo and load setup, including `npm run start:demo` and
+`npm run start:load-test`, see [docs/load-database.md](docs/load-database.md).
+The measured local result and limitations are in [docs/load-baseline.md](docs/load-baseline.md).
 
 The reusable agent checklist is [docs/verification-procedure.md](docs/verification-procedure.md).
 The GitHub Actions workflow is configured to run backend checks and PostgreSQL
@@ -157,7 +250,7 @@ after verifying the database identity. The fresh-migration test also creates and
 drops a uniquely named database on that verified isolated test server; its test
 role therefore needs `CREATEDB` privileges. Never point it at a shared server.
 Configure the test URL separately (a password is required). For the public
-demo, export `TEST_DATABASE_URL` as
+local development example, export `TEST_DATABASE_URL` as
 `postgresql://garage_test:local_test_only@localhost:55433/garage_test`;
 for the agent setup inject the matching secret URL. Then run:
 

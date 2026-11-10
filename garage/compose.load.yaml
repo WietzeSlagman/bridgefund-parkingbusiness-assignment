@@ -1,0 +1,17 @@
+# Manually started disposable load database. Never attach a persistent volume.
+services:
+  load-db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: garage_load
+      POSTGRES_DB: garage_load
+      POSTGRES_PASSWORD: ${LOAD_DB_PASSWORD:?Set a disposable LOAD_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:55434:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U garage_load -d garage_load"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
