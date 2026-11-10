@@ -7,11 +7,19 @@ import { checkOutRouter } from "./check-out.js";
 import type { ParkingConfig } from "../config.js";
 import { residentRouter } from "./residents.js";
 import { occupancyRouter } from "./occupancy.js";
+import { paymentsRouter } from "./payments.js";
 
-export function parkingRouter(pool: pg.Pool, config: ParkingConfig) {
+export function parkingRouter(
+  pool: pg.Pool,
+  config: ParkingConfig,
+  webhookSecret?: string,
+) {
   watchPool(pool);
   const router = express.Router();
   const auth = createAuthenticator(config.credentials);
+  if (webhookSecret) {
+    router.use(paymentsRouter(pool, webhookSecret));
+  }
   // Authenticate before Express decodes the resident path parameter.
   router.use("/admin/residents", requireRole(auth, "admin"));
   router.use("/admin/residents", residentRouter(pool, config));

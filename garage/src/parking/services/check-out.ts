@@ -35,6 +35,7 @@ export function checkOut(
         quoted_amount: number | null;
         paid_at_quote: number | null;
         response: unknown;
+        superseded: boolean;
       };
       if (
         binding.session_id !== body.parkingSessionId.toLowerCase() ||
@@ -64,6 +65,9 @@ export function checkOut(
       if (!session.active) {
         return failure(409, "EVENT_CLOSED");
       }
+      if (binding.superseded) {
+        return failure(409, "CHECKOUT_SUPERSEDED");
+      }
       const now = clock();
       const price = parkingPrice(session.category, session.checked_in_at, now);
       const payments = (
@@ -90,6 +94,10 @@ export function checkOut(
           sessionLengthInMinutes: price.minutes,
           amountDue: { value: 0, currency: "EUR" },
         };
+        await q(
+          "UPDATE checkout_requests SET is_current=false WHERE session_id=$1 AND is_current",
+          [body.parkingSessionId],
+        );
         await q("UPDATE sessions SET active=false WHERE id=$1 AND active", [
           body.parkingSessionId,
         ]);
@@ -101,7 +109,11 @@ export function checkOut(
       }
       if (binding.quoted_amount === null || covered) {
         await q(
-          "UPDATE checkout_requests SET quoted_amount=$3, paid_at_quote=$4 WHERE gate_id=$1 AND request_id=$2",
+          "UPDATE checkout_requests SET superseded=true, is_current=false WHERE session_id=$1 AND quoted_amount IS NOT NULL AND (gate_id,request_id) <> ($2,$3)",
+          [body.parkingSessionId, gateId, id],
+        );
+        await q(
+          "UPDATE checkout_requests SET quoted_amount=$3, paid_at_quote=$4, is_current=true WHERE gate_id=$1 AND request_id=$2",
           [gateId, id, amount, paid],
         );
       }

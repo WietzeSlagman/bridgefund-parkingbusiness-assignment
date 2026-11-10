@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import net from "node:net";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
@@ -296,6 +296,92 @@ it.each(["before", "during", "after"] as const)(
   15000,
 );
 
+it.each(["before", "after", "lost-response"] as const)(
+  "recovers a signed payment after %s fault",
+  async (phase) => {
+    const id = randomUUID();
+    const requestId = randomUUID();
+    const paymentId = randomUUID();
+    const secret = "test-only-payment-secret";
+    const direct = createApp({ pool: control, config, webhookSecret: secret });
+    const link = await proxy(phase === "lost-response" ? "hold-after" : phase);
+    const { pool } = createDatabase(link.url);
+    const app = createApp({ pool, config, webhookSecret: secret });
+    const raw = JSON.stringify({
+      paymentId,
+      parkingSessionId: id,
+      amount: { value: 500, currency: "EUR" },
+      status: "PAID",
+    });
+    const call = () =>
+      request(app)
+        .post("/webhooks/payments")
+        .set("Content-Type", "application/json")
+        .set(
+          "X-Signature",
+          createHmac("sha256", secret).update(raw).digest("hex"),
+        )
+        .send(raw);
+    const checkout = () =>
+      request(direct)
+        .post("/check-out")
+        .set("Authorization", "Bearer c")
+        .set("X-Request-Id", requestId)
+        .send({ parkingSessionId: id, isResident: false });
+    try {
+      await control.query(
+        "insert into sessions(id,building_code,space_number,plate,vehicle_type,category,checked_in_at) select $1,s.building_code,s.number,$2,'CAR','CAR',now()-interval '30 minutes' from spaces s where s.building_code='PB-AMS-2M8D' and s.category='CAR' and not exists (select 1 from sessions x where x.building_code=s.building_code and x.space_number=s.number and x.active) order by s.number limit 1",
+        [id, id],
+      );
+      expect((await checkout()).status).toBe(402);
+      const pending = call();
+      const attempt = pending.then(
+        (response) => ({ status: response.status }),
+        () => ({ status: undefined }),
+      );
+      await Promise.race([
+        link.reached,
+        attempt.then((response) => {
+          throw new Error(`Payment returned before COMMIT: ${response.status}`);
+        }),
+      ]);
+      if (phase === "lost-response") {
+        pending.abort();
+        expect((await attempt).status).toBeUndefined();
+      } else {
+        expect((await attempt).status).toBe(503);
+      }
+      const before = await control.query<{ confirmed_at: Date }>(
+        "select confirmed_at from checkout_payments where payment_id=$1",
+        [paymentId],
+      );
+      expect(before.rowCount).toBe(phase === "before" ? 0 : 1);
+      expect((await call()).status).toBe(204);
+      const after = await control.query<{ confirmed_at: Date }>(
+        "select confirmed_at from checkout_payments where payment_id=$1",
+        [paymentId],
+      );
+      expect(after.rowCount).toBe(1);
+      if (before.rowCount) {
+        expect(after.rows[0].confirmed_at).toEqual(before.rows[0].confirmed_at);
+      }
+      expect((await call()).status).toBe(204);
+      expect((await checkout()).status).toBe(200);
+    } finally {
+      await pool.end();
+      await link.close();
+      await control.query("delete from checkout_payments where session_id=$1", [
+        id,
+      ]);
+      await control.query("delete from checkout_requests where session_id=$1", [
+        id,
+      ]);
+      await control.query("delete from sessions where id=$1", [id]);
+    }
+  },
+  15000,
+);
+
 async function startServer(
   port: number,
   databaseUrl = url,
@@ -307,6 +393,7 @@ async function startServer(
       PORT: String(port),
       PARKING_BUILDINGS: buildings,
       PARKING_KEYS: keys,
+      WEBHOOK_SECRET: "test-only-webhook-secret",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

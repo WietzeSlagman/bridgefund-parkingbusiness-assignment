@@ -22,6 +22,27 @@
       "when": 1794237667134,
       "tag": "0002_bumpy_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794244105715,
+      "tag": "0003_narrow_spitfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794244945400,
+      "tag": "0004_sturdy_spot",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794245342546,
+      "tag": "0005_guard_checkout_upgrade",
+      "breakpoints": true
     }
   ]
 }

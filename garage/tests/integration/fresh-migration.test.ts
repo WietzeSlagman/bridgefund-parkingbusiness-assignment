@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { readMigrationFiles } from "drizzle-orm/migrator";
 import pg from "pg";
 import { expect, it } from "vitest";
 import { loadParkingConfig } from "../../src/parking/config.js";
@@ -33,7 +34,16 @@ it("migrates and seeds a freshly created isolated database, then repeats safely"
         );
         expect(target.rows[0]).toEqual({ name, username: "garage_test" });
         await migrate(drizzle(client), { migrationsFolder: "./migrations" });
+        const expected = readMigrationFiles({
+          migrationsFolder: "./migrations",
+        }).map((m) => ({ hash: m.hash, created_at: String(m.folderMillis) }));
+        const bookkeeping = () =>
+          client.query(
+            "select hash, created_at from drizzle.__drizzle_migrations order by created_at, id",
+          );
+        expect((await bookkeeping()).rows).toEqual(expected);
         await migrate(drizzle(client), { migrationsFolder: "./migrations" });
+        expect((await bookkeeping()).rows).toEqual(expected);
         const columns = await client.query(
           `select table_name, column_name from information_schema.columns
            where table_schema = 'public' and table_name in
@@ -50,12 +60,14 @@ it("migrates and seeds a freshly created isolated database, then repeats safely"
             ],
             checkout_requests: [
               "gate_id",
+              "is_current",
               "is_resident",
               "paid_at_quote",
               "quoted_amount",
               "request_id",
               "response",
               "session_id",
+              "superseded",
             ],
           }).flatMap(([table_name, names]) =>
             names.map((column_name) => ({ table_name, column_name })),

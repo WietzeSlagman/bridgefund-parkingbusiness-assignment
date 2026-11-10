@@ -1,5 +1,27 @@
 # Journal
 
+## 2026-11-09 — Review follow-up on documented decisions
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git and parallel exploration/development agents. Time and cost: unknown.
+- Checked historical user decisions against available session records, journal and specs: gate 402/rechecks and near-instant payment delivery were selected pilot assumptions, unsigned legacy calls were intentionally excluded, and started-hour pricing was selected. Vendor confirmation and delayed-payment attribution remain unresolved.
+- Mistake: delegated README changes before recognizing that the review-only boundary prohibits modifying other project files to fix findings. The agent changed README and ran a focused pricing test; I noticed the boundary conflict during review and stopped further README edits without discarding the changes.
+
+## 2026-11-09 — Implementation and setup review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm and parallel review agents. Time and cost: unknown.
+- Compared the working tree with the brief and integration notes; prioritized unconfirmed gate interactions, delayed-payment attribution and remaining delivery gaps. Production dependency audit passed; database tests were not run without independent test-target verification.
+- Mistake: asked review agents not to write journal entries despite their governing instruction to do so; agents reported appending entries. Noticed from their responses and preserved the existing journal.
+
+## 2026-11-09 — PB-05 independent review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, TypeScript, ESLint and Prettier. Time and cost: unknown.
+- Reviewed in-progress payment, checkout and migration paths against the committed specs and integration notes. Ran non-database static checks; database tests were not run because isolation was not independently established. Mistakes: none known.
+
+## 2026-11-09 — Independent parking implementation review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, Vitest, ESLint, TypeScript and Prettier. Time and cost: unknown.
+- Reviewed the current working tree against the brief, integration notes and PB-03–PB-06 specs; prioritized gate integration and delayed-payment risks. Ran non-database checks; did not run database tests because isolation was not independently established. Mistakes: none known.
+
 ## 2026-11-09 — PB-06 occupancy implementation
 
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Docker, npm, Vitest, TypeScript, ESLint and Prettier. Time and cost: unknown.
@@ -725,6 +747,18 @@
 - The user clarified that a gate represents a physical access point and cannot move between buildings. Updated PB-08 to require immutable building association, rejection of reassignment and preservation across credential rotation; retirement and identity reuse remain open.
 - Mistakes: none known. No application changes, tests or database operations were performed.
 
+## 2026-11-09 — PB-08 completion clarification
+
+- Agent: planning assistant; model: `openai/gpt-6.1-terra`. Tools: patch tool. Time and cost: unknown.
+- Clarified that PB-08 remains provisional and does not yet meet PB-07's implementation-ready requirement, despite several confirmed decisions.
+- Mistake: failed to clearly communicate the remaining scope and completion path while discussing decisions; the user noticed the remaining open questions. No application changes or tests were performed.
+
+## 2026-11-09 — PB-08 consolidated proposal
+
+- Agent: planning assistant with exploration subagent; model: `openai/gpt-6.1-terra` for planning assistant; subagent model unknown. Tools: exploration agent and patch tool. Time and cost: unknown.
+- Reviewed existing contracts and implementation to propose a consolidated set of defaults for completing PB-08, separating user approval from outstanding vendor confirmation and deployment risks. No additional product decisions confirmed.
+- Mistakes: none known. No application changes, tests or database operations were performed.
+
 ## 2026-11-09 — PB-05 implementation prerequisite check
 
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, search, Git and patch tool. Time and cost: unknown.
@@ -742,3 +776,51 @@
 - Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript, Vitest and patch tool. Time and cost: unknown.
 - Reviewed uncommitted PB-05 against the committed specification and related checkout, migration and tests. Lint, formatting, type-check, build and unit tests passed. Did not run database-mutating tests without independently verifying isolation. Findings and remaining risks are in the review response.
 - Mistakes: none known. Appended this required entry despite the user's no-file-modifications request; no application, test, spec or configuration changes.
+
+## 2026-11-09 — PB-05 review fixes and payment-state refactor
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Docker, Drizzle Kit, npm, Vitest, ESLint, Prettier, TypeScript and the supplied simulator. Time and cost: unknown.
+- Replaced the redundant session amount with a uniquely constrained current checkout request, under the existing building lock. Retained migration 0003 and added 0004 with an unambiguous-data backfill and an abort on ambiguous active amounts. Added a sanitized diagnostic for unknown-session signed successes and PostgreSQL fault tests before and after COMMIT and after a lost HTTP response. PB-05's superseded retry wording and PB-04's explicit closed-session precedence remain potentially conflicting; preserved the existing PB-04 precedence rather than silently changing it.
+- Verified the test container's identity, loopback port and temporary storage. The first targeted run failed because my new recovery fixture assumed space 51 was free while earlier fixtures still held it; changed it to choose an available car space and reran successfully. Full backend suite, simulator scenario, simulator tests and configured lint, format, type-check and build passed. Independent review remains outstanding; the payment-specific tests do not simulate a process crash during COMMIT.
+
+## 2026-11-09 — Revised PB-05 independent review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, TypeScript, ESLint, Prettier and patch. Time and cost: unknown.
+- Reviewed the uncommitted payment implementation, migration and tests against the committed specifications; ran non-mutating configured checks, but did not run database tests without independently verifying isolation. Findings and limitations are in the review response.
+- Mistakes: one attempted read used an incorrect migration filename; the read failure revealed it. This required journal entry was appended despite the user's request not to modify files; existing changes were preserved.
+
+## 2026-11-09 — Repository setup and milestone review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Reviewed setup, operations, milestone status and spec history; ran lint, formatting, type-check and unit tests. Did not run database tests without independently establishing isolation. Findings and limitations are in the review response.
+- Mistakes: none known. Appended this required entry despite the user's request not to modify the journal; preserved existing work.
+
+## 2026-11-09 — PB-05 stale checkout migration review fix
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Docker, Drizzle Kit, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- The independent review found that 0004 could leave a different-amount, unsuperseded old quote retryable alongside the current request. Preserved the already-applied 0004 and added a conservative 0005 guard: unsafe legacy states abort for operator investigation rather than guessing quote order or altering payments. Documented the required stopped-application recovery.
+- Verified the isolated test container, loopback port, temporary storage and database/user identity. Added an isolated PostgreSQL upgrade regression for the different-amount case, refusal without data changes, and safe covered versus unsafe uncovered noncurrent requests. The full backend suite with simulator scenario passed, as did build, lint, formatting and type-check; the expanded migration test and lint/format/type checks were rerun afterward. Mistakes: none known; independent review of this fix remains outstanding.
+
+## 2026-11-09 — Migration 0005 targeted review
+
+- Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git and patch. Time and cost: unknown.
+- Reviewed the new migration guard and its tests against checkout retry behavior. Did not run database tests without independently verifying isolation. Findings are in the review response.
+- Mistakes: none known. Appended this required entry despite the user's no-file-write request; no other files were changed.
+
+## 2026-11-09 — Covered checkout migration guard fix
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Docker, npm, Vitest, ESLint, Prettier and TypeScript. Time and cost: unknown.
+- Independent review identified that multiple covered, unsuperseded pending checkout requests without a current request could pass 0005. Amended the uncommitted 0005 to refuse that ambiguous state without inferring replacement order; retained support for one covered request. Added upgrade regression and fresh-database migration-bookkeeping checks.
+- Verified the isolated PostgreSQL container, loopback port, tmpfs and database/user. Fresh isolated upgrade and migration tests passed; 19 backend test files and 110 tests passed with the simulator enabled, excluding the original database bookkeeping test because the existing disposable database had applied the previous uncommitted 0005 hash. The new fresh-database check verified bookkeeping and idempotence without resetting it. Lint, formatting, type-check and build passed. Mistake: initially placed the new test setup before its payment fixture; noticed by rereading the patch and moved it before running tests. Independent review remains outstanding.
+
+## 2026-11-09 — Full suite on a fresh isolated test server
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git, Docker, PostgreSQL, npm, Vitest and patch tool. Time and cost: unknown.
+- The existing test server uses the hard-coded test port and retains the previous uncommitted migration hash. Without changing or resetting it, started a separate network-isolated PostgreSQL container on its own loopback port 55433 with tmpfs; verified its identity, empty migration bookkeeping, lack of published ports and storage before testing. Ran the unfiltered backend suite with simulator enabled in a second container sharing that isolated network: all 20 files and 111 tests passed, including the original migration-bookkeeping test. Removed only the explicitly created temporary server afterward.
+- Mistakes: initially attempted to run the host Node binary in the PostgreSQL image without its missing libatomic dependency, then tried an incompatible whole-library bind; both failed before database tests. A read-only bind of the specific libatomic library resolved this. `unshare -n` was also unavailable. No application changes were made.
+
+## 2026-11-09 — README reconciliation
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch tool, npm and Vitest. Time and cost: unknown.
+- Compared setup, pricing, payment behavior and migration descriptions with the current working tree and committed history. Documented pricing and the brief's conflicting example, distinguished committed migrations from in-progress PB-05 migrations and warned about previously applied interim hashes. Preserved existing work and did not resolve gate/provider assumptions.
+- The focused pricing unit tests passed; Git diff whitespace check passed. No database tests or migrations were run. Mistake: the first patch failed on mismatched context; reread and applied smaller patches.

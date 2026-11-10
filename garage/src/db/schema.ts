@@ -106,11 +106,22 @@ export const checkoutRequests = pgTable(
     quotedAmount: integer("quoted_amount"),
     paidAtQuote: integer("paid_at_quote"),
     response: jsonb(),
+    superseded: boolean().notNull().default(false),
+    isCurrent: boolean("is_current").notNull().default(false),
   },
-  (t) => [primaryKey({ columns: [t.gateId, t.requestId] })],
+  (t) => [
+    primaryKey({ columns: [t.gateId, t.requestId] }),
+    uniqueIndex("checkout_current_session")
+      .on(t.sessionId)
+      .where(sql`${t.isCurrent}`),
+    check(
+      "checkout_current_valid",
+      sql`not ${t.isCurrent} or (${t.quotedAmount} is not null and ${t.quotedAmount} > 0 and ${t.paidAtQuote} is not null and ${t.paidAtQuote} >= 0 and not ${t.superseded} and ${t.response} is null)`,
+    ),
+  ],
 );
 
-// Only a future authenticated PB-05 implementation may insert confirmations.
+// Only authenticated successful PB-05 confirmations are persisted here.
 export const checkoutPayments = pgTable(
   "checkout_payments",
   {

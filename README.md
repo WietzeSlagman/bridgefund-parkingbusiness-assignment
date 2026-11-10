@@ -4,8 +4,9 @@ PB-03 check-in and resident administration are implemented but are **not ready
 for deployment**. The three latest independent-review findings have fixes and
 PostgreSQL-backed regression tests; the fixes have not had a further independent
 review. The latest independent review did not independently run database tests.
-PB-04 checkout, PB-05 payment confirmation and PB-06 occupancy are implemented
-as a pilot, subject to the limitations below and independent review.
+PB-04 checkout and PB-06 occupancy are implemented as a pilot. PB-05 payment
+confirmation and its migrations are in-progress working-tree changes, not a
+committed release. All are subject to the limitations below and independent review.
 See [PLAN.md](PLAN.md), [the checkout spec](specs/pb-04-check-out.md), and
 [BRIEF.md](BRIEF.md).
 The per-attempt timer closes an acquired database connection on timeout and
@@ -29,8 +30,8 @@ with the provider, distinct from other credentials. It verifies exactly one
 lowercase hexadecimal HMAC-SHA256 over the raw JSON bytes; unsigned legacy
 requests are rejected. Identical successful payment IDs are idempotent, including
 after checkout; conflicting IDs and unexpected amounts return 409. Failed events
-are logged without persistence. Operators must investigate structured payment
-diagnostics manually; logs do not reconcile or refund external charges. The
+for known sessions are logged without persistence. Operators must investigate
+structured payment diagnostics manually; logs do not reconcile or refund external charges. The
 provider may retry rejected events for 24 hours.
 
 Checkout B replaces the current amount: if A displayed EUR 5 and B displays
@@ -62,6 +63,26 @@ Resident administration also uses a 1,500 ms transaction deadline, including
 database statement, lock and idle bounds and connection disposal on cancellation.
 An admin COMMIT interrupted after being sent can have an unknown outcome: inspect
 the registry before retrying, since admin requests do not have gate request IDs.
+
+## Pricing
+
+The category recorded at check-in determines the tariff; the checkout
+`isResident` field cannot change it. Residents park free. Visitor cars cost
+EUR 5 per started hour, capped at EUR 30 per Amsterdam calendar day; motorcycles
+cost EUR 3 per started hour, capped at EUR 18 per Amsterdam calendar day.
+Amounts are integer euro cents.
+
+The implementation divides actual elapsed time into one-hour blocks anchored at
+check-in. Each started block is charged to the Amsterdam local date on which it
+starts, with that date's cap applied independently. Midnight does not split a
+block; daylight-saving transitions change local-date attribution, not elapsed
+duration. Zero elapsed time costs zero, and reported session minutes are rounded
+down independently of billing. For example, a car from 23:45 to 00:45 costs EUR 5,
+attributed to the first day; one second more starts another EUR 5 block on the
+second day, before caps. The brief's 09:00–10:40 example of EUR 8.33 conflicts
+with its started-hour tariff: the implemented charge is EUR 10, not prorated.
+See the [checkout spec](specs/pb-04-check-out.md) and
+`garage/src/parking/helpers/pricing.ts`.
 
 ## Local setup
 
@@ -206,11 +227,21 @@ current request only when the match is unambiguous; otherwise it aborts for
 operator investigation. Stop all old application instances before migrating;
 old and new versions cannot safely run together. The migration does not discard
 or automatically repair ambiguous records.
-PB-04's unreleased `0002` creates the final checkout schema directly. It replaces
-an earlier uncommitted `0002`–`0005` sequence, not an upgrade from it. Databases
-that applied any of that sequence have incompatible migration bookkeeping and
-may have an incompatible schema. Do not reset, edit bookkeeping, or migrate them
-blindly; preserve their data and obtain an explicit migration/recovery decision.
+Migration `0005` also refuses unsafe noncurrent, unsuperseded checkout quotes,
+including different-amount stale quotes that `0004` could not identify. Resolve
+these and multiple unsuperseded pending quotes (even when covered) manually with
+the application stopped; it does not guess which request
+was replaced or alter payment data.
+The committed chain contains `0000`–`0002`; `0002` creates the PB-04 checkout
+tables, not the final PB-05 schema. The working-tree journal adds the currently
+uncommitted `0003`–`0005` migrations described above. An earlier, different
+uncommitted checkout migration sequence was consolidated into `0002`; databases
+that applied that earlier sequence can have incompatible bookkeeping and schema.
+Do not confuse it with the current `0003`–`0005`, or reset, edit bookkeeping, or
+migrate an incompatible database blindly. Preserve its data and obtain an explicit
+migration/recovery decision. The in-progress chain may change before it lands.
+Earlier versions of the current uncommitted `0005` have also been applied in
+testing; matching migration names alone do not establish matching SQL or hashes.
 `db:generate` also requires a valid `DATABASE_URL`. The integration test uses
 Drizzle ORM's migrator on its verified connection; the separate `db:migrate`
 command uses Drizzle Kit and targets `DATABASE_URL`, not `TEST_DATABASE_URL`.

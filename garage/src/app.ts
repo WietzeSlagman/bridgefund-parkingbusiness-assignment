@@ -25,11 +25,12 @@ export const errorHandler: ErrorRequestHandler = (_err, _req, res, next) => {
 export function createApp(parking?: {
   pool: pg.Pool;
   config: ParkingConfig;
+  webhookSecret?: string;
 }): Express {
   const app = express();
   app.disable("x-powered-by");
   if (parking) {
-    app.use(parkingRouter(parking.pool, parking.config));
+    app.use(parkingRouter(parking.pool, parking.config, parking.webhookSecret));
   }
   app.use((_req, res) => res.status(404).json({ error: "Not found" }));
   app.use(errorHandler);

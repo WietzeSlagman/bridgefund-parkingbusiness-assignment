@@ -8,6 +8,10 @@ import { initializeParking } from "./parking/initialize.js";
 async function main() {
   const config = loadConfig(process.env);
   const parkingConfig = loadParkingConfig(process.env);
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+  if (!webhookSecret || webhookSecret.startsWith("CHANGE_ME")) {
+    throw new Error("Invalid webhook configuration");
+  }
   const { pool } = createDatabase(config.databaseUrl);
   try {
     await pool.query("SELECT 1");
@@ -23,14 +27,15 @@ async function main() {
       "Parking initialization failed or building configuration mismatched",
     );
   }
-  const server = createApp({ pool, config: parkingConfig }).listen(
-    config.port,
-    () => {
-      // Startup logging is the only logging currently available.
-      // eslint-disable-next-line no-console
-      console.log(`Listening on port ${config.port}`);
-    },
-  );
+  const server = createApp({
+    pool,
+    config: parkingConfig,
+    webhookSecret,
+  }).listen(config.port, () => {
+    // Startup logging is the only logging currently available.
+    // eslint-disable-next-line no-console
+    console.log(`Listening on port ${config.port}`);
+  });
   server.on("error", () => {
     // eslint-disable-next-line no-console -- report startup failure without internal details
     console.error("HTTP server failed to start");
