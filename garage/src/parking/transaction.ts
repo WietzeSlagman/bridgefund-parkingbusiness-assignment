@@ -1,4 +1,5 @@
 import type pg from "pg";
+import { isUnavailableCode } from "../db/error-code.js";
 import {
   transaction as runTransaction,
   TransactionFailure,
@@ -6,14 +7,16 @@ import {
 import type { Deadline } from "./helpers/deadline.js";
 import { failure, type Result } from "./helpers/http.js";
 
-export async function transaction(
+export type TransactionError = { kind: "unavailable" | "internal-error" };
+
+export async function domainTransaction<T>(
   pool: pg.Pool,
   work: (
     client: pg.PoolClient,
     query: (sql: string, values?: unknown[]) => Promise<pg.QueryResult>,
-  ) => Promise<Result>,
+  ) => Promise<T>,
   deadline?: Deadline,
-): Promise<Result> {
+): Promise<T | TransactionError> {
   try {
     return await runTransaction(
       pool,
@@ -25,23 +28,31 @@ export async function transaction(
       throw failureError;
     }
     const error = failureError.original;
-    const code =
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      typeof error.code === "string"
-        ? error.code
-        : "";
     const unavailable =
       failureError.committing ||
       failureError.broken ||
       failureError.clientMissing ||
       (error instanceof Error && error.message === "deadline") ||
-      /^(08|53|57|55P03|57014|ECONN|ETIMEDOUT)/.test(code) ||
+      isUnavailableCode(error) ||
       (error instanceof Error &&
         error.message === "timeout exceeded when trying to connect");
-    return unavailable
+    return { kind: unavailable ? "unavailable" : "internal-error" };
+  }
+}
+
+export async function transaction(
+  pool: pg.Pool,
+  work: (
+    client: pg.PoolClient,
+    query: (sql: string, values?: unknown[]) => Promise<pg.QueryResult>,
+  ) => Promise<Result>,
+  deadline?: Deadline,
+): Promise<Result> {
+  const result = await domainTransaction(pool, work, deadline);
+  if ("kind" in result) {
+    return result.kind === "unavailable"
       ? failure(503, "SERVICE_UNAVAILABLE")
       : failure(500, "INTERNAL_ERROR");
   }
+  return result;
 }

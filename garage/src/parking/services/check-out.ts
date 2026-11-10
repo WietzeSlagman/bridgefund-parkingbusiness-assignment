@@ -1,12 +1,28 @@
 import type pg from "pg";
 import type { Deadline } from "../helpers/deadline.js";
-import { failure } from "../helpers/http.js";
 import { parkingPrice } from "../helpers/pricing.js";
 import { PILOT } from "../pilot.js";
-import { transaction } from "../transaction.js";
+import { domainTransaction, type TransactionError } from "../transaction.js";
 import { lockBuilding } from "./building-lock.js";
 
 export type CheckoutBody = { parkingSessionId: string; isResident: boolean };
+// The successful payload remains stored unchanged for exact replay.
+export type CheckoutDetails = {
+  parkingSpaceId: number;
+  sessionLengthInMinutes: number;
+  amountDue: { value: number; currency: "EUR" };
+};
+export type CheckOutOutcome =
+  | { kind: "authorized"; details: CheckoutDetails }
+  | { kind: "payment-required"; details: CheckoutDetails }
+  | {
+      kind:
+        | "request-conflict"
+        | "session-not-found"
+        | "event-closed"
+        | "checkout-superseded";
+    }
+  | TransactionError;
 
 export function checkOut(
   pool: pg.Pool,
@@ -15,8 +31,8 @@ export function checkOut(
   body: CheckoutBody,
   deadline: Deadline,
   clock: () => Date = () => new Date(),
-) {
-  return transaction(
+): Promise<CheckOutOutcome> {
+  return domainTransaction<Exclude<CheckOutOutcome, TransactionError>>(
     pool,
     async (_client, q) => {
       await lockBuilding(q, PILOT.code);
@@ -34,17 +50,17 @@ export function checkOut(
         is_resident: boolean;
         quoted_amount: number | null;
         paid_at_quote: number | null;
-        response: unknown;
+        response: CheckoutDetails | null;
         superseded: boolean;
       };
       if (
         binding.session_id !== body.parkingSessionId.toLowerCase() ||
         binding.is_resident !== body.isResident
       ) {
-        return failure(409, "REQUEST_ID_CONFLICT");
+        return { kind: "request-conflict" };
       }
       if (binding.response) {
-        return { status: 200, body: binding.response };
+        return { kind: "authorized", details: binding.response };
       }
       const session = (
         await q("SELECT * FROM sessions WHERE id=$1 AND building_code=$2", [
@@ -60,13 +76,13 @@ export function checkOut(
           }
         | undefined;
       if (!session) {
-        return failure(404, "SESSION_NOT_FOUND");
+        return { kind: "session-not-found" };
       }
       if (!session.active) {
-        return failure(409, "EVENT_CLOSED");
+        return { kind: "event-closed" };
       }
       if (binding.superseded) {
-        return failure(409, "CHECKOUT_SUPERSEDED");
+        return { kind: "checkout-superseded" };
       }
       const now = clock();
       const price = parkingPrice(session.category, session.checked_in_at, now);
@@ -89,7 +105,7 @@ export function checkOut(
         amount = binding.quoted_amount;
       }
       if (inGrace || amount === 0) {
-        const response = {
+        const response: CheckoutDetails = {
           parkingSpaceId: session.space_number,
           sessionLengthInMinutes: price.minutes,
           amountDue: { value: 0, currency: "EUR" },
@@ -105,7 +121,7 @@ export function checkOut(
           "UPDATE checkout_requests SET response=$3::jsonb WHERE gate_id=$1 AND request_id=$2",
           [gateId, id, JSON.stringify(response)],
         );
-        return { status: 200, body: response };
+        return { kind: "authorized", details: response };
       }
       if (binding.quoted_amount === null || covered) {
         await q(
@@ -118,8 +134,8 @@ export function checkOut(
         );
       }
       return {
-        status: 402,
-        body: {
+        kind: "payment-required",
+        details: {
           parkingSpaceId: session.space_number,
           sessionLengthInMinutes: price.minutes,
           amountDue: { value: amount, currency: "EUR" },

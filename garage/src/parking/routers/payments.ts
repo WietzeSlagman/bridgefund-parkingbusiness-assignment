@@ -1,15 +1,13 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import express from "express";
 import type pg from "pg";
 import { z } from "zod";
 import { CHECK_IN_BUDGET_MS, type Deadline } from "../helpers/deadline.js";
 import { httpDeadline, sendWithinDeadline } from "../helpers/deadline-http.js";
 import { failure, send } from "../helpers/http.js";
-import { transaction } from "../transaction.js";
-import { lockBuilding } from "../services/building-lock.js";
-import { PILOT } from "../pilot.js";
+import { recordPayment } from "../services/payments.js";
 
-const payloadSchema = z.strictObject({
+export const payloadSchema = z.strictObject({
   paymentId: z
     .string()
     .min(1)
@@ -27,20 +25,6 @@ const payloadSchema = z.strictObject({
   }),
   status: z.enum(["PAID", "FAILED"]),
 });
-
-function diagnostic(reason: string, sessionId: string, paymentId: string) {
-  // The opaque provider ID may contain sensitive data; log only a digest.
-  const paymentIdHash = createHash("sha256").update(paymentId).digest("hex");
-  // eslint-disable-next-line no-console -- structured, sanitized operator diagnostic
-  console.error(
-    JSON.stringify({
-      event: "payment_notification",
-      reason,
-      sessionId,
-      paymentIdHash,
-    }),
-  );
-}
 
 export function paymentsRouter(pool: pg.Pool, secret: string) {
   const router = express.Router();
@@ -67,7 +51,7 @@ export function paymentsRouter(pool: pg.Pool, secret: string) {
         next();
       });
     },
-    async (req, res) => {
+    async function handlePayment(req, res) {
       const signatures = req.rawHeaders.filter(
         (_, i) =>
           i % 2 === 0 && req.rawHeaders[i].toLowerCase() === "x-signature",
@@ -99,84 +83,26 @@ export function paymentsRouter(pool: pg.Pool, secret: string) {
         send(res, failure(400, "INVALID_REQUEST"));
         return;
       }
-      const p = parsed.data;
-      const result = await transaction(
+      const result = await recordPayment(
         pool,
-        async (_client, q) => {
-          await lockBuilding(q, PILOT.code);
-          if (p.status === "PAID") {
-            const existing = (
-              await q(
-                "SELECT session_id, amount FROM checkout_payments WHERE payment_id=$1",
-                [p.paymentId],
-              )
-            ).rows[0] as { session_id: string; amount: number } | undefined;
-            if (existing) {
-              if (
-                existing.session_id === p.parkingSessionId &&
-                existing.amount === p.amount.value
-              ) {
-                return { status: 204 };
-              }
-              diagnostic(
-                "PAYMENT_ID_CONFLICT",
-                p.parkingSessionId,
-                p.paymentId,
-              );
-              return failure(409, "PAYMENT_ID_CONFLICT");
-            }
-          }
-          const session = (
-            await q(
-              "SELECT active FROM sessions WHERE id=$1 AND building_code=$2",
-              [p.parkingSessionId, PILOT.code],
-            )
-          ).rows[0] as { active: boolean } | undefined;
-          if (!session) {
-            if (p.status === "PAID") {
-              diagnostic("SESSION_NOT_FOUND", p.parkingSessionId, p.paymentId);
-            }
-            return failure(404, "SESSION_NOT_FOUND");
-          }
-          if (p.status === "FAILED") {
-            diagnostic("PAYMENT_FAILED", p.parkingSessionId, p.paymentId);
-            return { status: 204 };
-          }
-          if (!session.active) {
-            diagnostic(
-              "PAYMENT_SESSION_CLOSED",
-              p.parkingSessionId,
-              p.paymentId,
-            );
-            return failure(409, "PAYMENT_SESSION_CLOSED");
-          }
-          const current = (
-            await q(
-              "SELECT quoted_amount FROM checkout_requests WHERE session_id=$1 AND is_current",
-              [p.parkingSessionId],
-            )
-          ).rows[0] as { quoted_amount: number } | undefined;
-          if (current?.quoted_amount !== p.amount.value) {
-            diagnostic(
-              "PAYMENT_AMOUNT_MISMATCH",
-              p.parkingSessionId,
-              p.paymentId,
-            );
-            return failure(409, "PAYMENT_AMOUNT_MISMATCH");
-          }
-          await q(
-            "INSERT INTO checkout_payments(payment_id,session_id,amount,confirmed_at) VALUES ($1,$2,$3,clock_timestamp())",
-            [p.paymentId, p.parkingSessionId, p.amount.value],
-          );
-          await q(
-            "UPDATE checkout_requests SET is_current=false WHERE session_id=$1 AND is_current",
-            [p.parkingSessionId],
-          );
-          return { status: 204 };
-        },
+        parsed.data,
         res.locals.deadline as Deadline,
       );
-      sendWithinDeadline(res, result);
+      const response =
+        result.kind === "accepted"
+          ? { status: 204 }
+          : result.kind === "session-not-found"
+            ? failure(404, "SESSION_NOT_FOUND")
+            : result.kind === "payment-id-conflict"
+              ? failure(409, "PAYMENT_ID_CONFLICT")
+              : result.kind === "session-closed"
+                ? failure(409, "PAYMENT_SESSION_CLOSED")
+                : result.kind === "amount-mismatch"
+                  ? failure(409, "PAYMENT_AMOUNT_MISMATCH")
+                  : result.kind === "unavailable"
+                    ? failure(503, "SERVICE_UNAVAILABLE")
+                    : failure(500, "INTERNAL_ERROR");
+      sendWithinDeadline(res, response);
     },
   );
   return router;

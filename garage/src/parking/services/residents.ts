@@ -1,6 +1,5 @@
 import type pg from "pg";
-import { failure } from "../helpers/http.js";
-import { transaction } from "../transaction.js";
+import { domainTransaction } from "../transaction.js";
 import { lockBuilding } from "./building-lock.js";
 import type { Deadline } from "../helpers/deadline.js";
 
@@ -11,7 +10,7 @@ export function registerResident(
   limit: number,
   deadline: Deadline,
 ) {
-  return transaction(
+  return domainTransaction(
     pool,
     async (_client, q) => {
       await lockBuilding(q, building);
@@ -23,19 +22,20 @@ export function registerResident(
           )
         ).rowCount
       ) {
-        return failure(409, "RESIDENT_ALREADY_REGISTERED");
+        return { kind: "already-registered" } as const;
       }
       const count = await q(
         "SELECT count(*)::int AS count FROM residents WHERE building_code=$1",
         [building],
       );
       if ((count.rows[0] as { count: number }).count >= limit) {
-        return failure(409, "REGISTRY_FULL");
+        return { kind: "registry-full" } as const;
       }
       await q("INSERT INTO residents VALUES ($1,$2)", [building, plate]);
       return {
-        status: 201,
-        body: { buildingCode: building, licensePlate: plate },
+        kind: "registered" as const,
+        buildingCode: building,
+        licensePlate: plate,
       };
     },
     deadline,
@@ -47,7 +47,7 @@ export function listResidents(
   building: string,
   deadline: Deadline,
 ) {
-  return transaction(
+  return domainTransaction(
     pool,
     async (_client, q) => {
       const records = await q(
@@ -55,13 +55,9 @@ export function listResidents(
         [building],
       );
       return {
-        status: 200,
-        body: {
-          buildingCode: building,
-          licensePlates: records.rows.map(
-            (row: { plate: string }) => row.plate,
-          ),
-        },
+        kind: "listed" as const,
+        buildingCode: building,
+        licensePlates: records.rows.map((row: { plate: string }) => row.plate),
       };
     },
     deadline,
@@ -74,7 +70,7 @@ export function removeResident(
   plate: string,
   deadline: Deadline,
 ) {
-  return transaction(
+  return domainTransaction(
     pool,
     async (_client, q) => {
       await lockBuilding(q, building);
@@ -86,7 +82,7 @@ export function removeResident(
           )
         ).rowCount
       ) {
-        return failure(404, "RESIDENT_NOT_FOUND");
+        return { kind: "not-found" } as const;
       }
       if (
         (
@@ -96,13 +92,13 @@ export function removeResident(
           )
         ).rowCount
       ) {
-        return failure(409, "RESIDENT_HAS_ACTIVE_SESSION");
+        return { kind: "active-session" } as const;
       }
       await q("DELETE FROM residents WHERE building_code=$1 AND plate=$2", [
         building,
         plate,
       ]);
-      return { status: 204 };
+      return { kind: "removed" } as const;
     },
     deadline,
   );

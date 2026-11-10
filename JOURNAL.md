@@ -1,5 +1,29 @@
 # Journal
 
+## 2026-11-10 — OpenAPI review corrections
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, TypeScript, ESLint, Prettier, Vitest, Supertest and Docker. Time and cost: unknown.
+- Expanded checkout documentation for same-event rechecks, replacement, replay, payment grace and unconfirmed vendor behavior. Documented both existing occupancy 500 envelopes and verified malformed encoded paths on both routes without changing runtime behavior. Regenerated the OpenAPI artifact and preserved the independent review entry.
+- Verified the disposable PostgreSQL container's tmpfs, loopback port and database/user. Focused tests, lint, format check, typecheck, build, OpenAPI drift check and full suite passed (131 passed, one skipped). Mistake: the initial test used an asymmetric matcher in a way flagged by the lint rule for unsafe assignment; replaced it with the explicit expected schema and reran checks.
+
+## 2026-11-10 — Independent API refactor review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, TypeScript, Vitest, Supertest and patch. Time and cost: unknown.
+- Reviewed the uncommitted routing and OpenAPI changes against the implementation and specs; focused on contract accuracy and behavioral regressions. OpenAPI drift check, typecheck and 14 focused unit tests passed; reproduced the malformed occupancy-path error response. Database tests were not run because an isolated target was not independently verified. No application fixes were made.
+- Mistakes: none known. The required journal entry is the only review-side file change, despite the requested read-only review.
+
+## 2026-11-10 — API contract and service boundaries follow-up
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, TypeScript, ESLint, Prettier, Vitest and Docker. Time and cost: unknown.
+- Added the generated OpenAPI 3.1 artifact, deterministic non-writing drift check and CI step, reusing runtime Zod input schemas; documented custom validation and signed-only integration. Added distinct occupancy handlers and converted payment and resident services to typed domain outcomes, retaining the existing transaction-failure classification and gate service result model. Added contract and route compatibility tests. No dependencies or migrations were added.
+- Verified the disposable PostgreSQL container's tmpfs, loopback port, database and user. Final lint, formatting, typecheck, build, OpenAPI drift check and full suite passed (128 tests passed, one skipped). An initial suite run concurrent with static checks had two deadline-related 503 failures; the affected suites passed when rerun alone and the full suite subsequently passed twice. Cause was not established. Mistakes: the first contract HTTP assertion assumed the wrong existing gate-auth message casing; the focused test caught it and the assertion was corrected. Initial lint caught an unused binding and console statement, both corrected.
+
+## 2026-11-10 — API routing refactor, partial implementation
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, TypeScript, ESLint, Prettier, Vitest and Docker. Time and cost: unknown.
+- Extracted occupancy reads and payment persistence while keeping raw webhook authentication and transaction ordering; shared the request-ID parser and database error-code predicate. Named most route handlers and added helper tests. The OpenAPI generation/drift check and incremental conversion of existing services to domain outcomes remain incomplete; payment outcomes still use the existing HTTP result type. No dependencies or migrations changed.
+- Verified the local test container's tmpfs, loopback port and database/user before the full suite: 122 tests passed and one skipped. Lint, formatting check, typecheck and build passed. Mistake: the initial occupancy handler used Express's broad path-parameter type; typecheck caught it and the handler was given an explicit parameter type.
+
 ## 2026-11-10 — Documentation evidence correction handoff
 
 - Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: exploration and development agents and patch tool. Time and cost: unknown.
@@ -913,3 +937,15 @@
 - Agent: planning assistant with independent review agent; model: `openai/gpt-6.1-terra` for planning assistant; reviewer model unknown. Tools: review agent, repository read and patch tool. Time and cost: unknown.
 - The review found checkout replacement implemented and aligned between PB-05 and the working-tree PB-04 amendment; the amendment remains uncommitted. Corrected stale PB-08 conflict wording and retained the spec checkpoint, integration verification and external risks. The reviewer ran pricing unit tests and a whitespace check, but did not independently run database tests.
 - Mistake: PB-08 incorrectly described the working-tree PB-04 contract as still conflicting; the independent review identified the stale statement. No application changes or database operations were performed by the planning assistant.
+
+## 2026-11-10 — Local environment setup
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Node.js, npm, Vitest and Docker Compose. Time and cost: unknown.
+- Added public throwaway demo settings and a nonsecret agent example; retained existing dotenv loading because it already preserves exported values, and tested that behavior. Documented secret-injection limits and separate test configuration.
+- Focused tests, lint, formatting, typecheck, build, OpenAPI check and Compose configuration validation passed. Full suite against the verified local tmpfs test container: 122 passed, one skipped, five failed (three checkout unique-constraint conflicts and two commit-recovery 503 responses); causes not established. Production dependency audit passed; full audit reported 11 moderate findings. No reset performed. Mistakes: none known.
+
+## 2026-11-10 — Gate service outcomes
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Node.js, npm, TypeScript, ESLint, Prettier, Vitest and Docker. Time and cost: unknown.
+- Converted check-in and checkout to typed outcomes and router-level HTTP mappings, retaining checkout's stored successful payload for exact replay and leaving transaction ordering and schema unchanged. Added mapping tests and adapted the existing direct checkout service assertion; no migration or migration test was added.
+- Verified the test container's tmpfs, loopback port and database/user. Lint, formatting, typecheck, build, OpenAPI check and focused tests passed; the full PostgreSQL-backed suite passed with 133 tests and one skipped. Mistakes: the first typecheck caught an existing service test still asserting HTTP status; updated it to assert the business outcome. The first full run used a nonmatching local test password and failed authentication; reran with the verified container's configured credential without printing it.

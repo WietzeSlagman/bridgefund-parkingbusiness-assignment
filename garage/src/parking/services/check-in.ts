@@ -2,10 +2,21 @@ import { randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { CheckInRequest } from "../helpers/check-in-request.js";
 import type { Deadline } from "../helpers/deadline.js";
-import { failure } from "../helpers/http.js";
 import { PILOT } from "../pilot.js";
-import { transaction } from "../transaction.js";
+import { domainTransaction, type TransactionError } from "../transaction.js";
 import { lockBuilding } from "./building-lock.js";
+
+export type CheckInOutcome =
+  | { kind: "allocated"; sessionId: string; spaceNumber: number }
+  | {
+      kind:
+        | "request-conflict"
+        | "event-closed"
+        | "resident-not-registered"
+        | "active-session-exists"
+        | "category-full";
+    }
+  | TransactionError;
 
 export function checkIn(
   pool: pg.Pool,
@@ -13,8 +24,8 @@ export function checkIn(
   id: string,
   body: CheckInRequest,
   deadline: Deadline,
-) {
-  return transaction(
+): Promise<CheckInOutcome> {
+  return domainTransaction<Exclude<CheckInOutcome, TransactionError>>(
     pool,
     async (_client, q) => {
       await lockBuilding(q, PILOT.code);
@@ -37,7 +48,7 @@ export function checkIn(
         record.is_resident !== body.isResident ||
         record.plate !== body.licensePlate
       ) {
-        return failure(409, "REQUEST_ID_CONFLICT");
+        return { kind: "request-conflict" };
       }
       if (record.session_id) {
         const existing = await q(
@@ -50,13 +61,11 @@ export function checkIn(
         };
         return session.active
           ? {
-              status: 201,
-              body: {
-                parkingSessionId: record.session_id,
-                parkingSpaceId: session.space_number,
-              },
+              kind: "allocated",
+              sessionId: record.session_id,
+              spaceNumber: session.space_number,
             }
-          : failure(409, "EVENT_CLOSED");
+          : { kind: "event-closed" };
       }
       const resident =
         (
@@ -66,7 +75,7 @@ export function checkIn(
           )
         ).rowCount !== 0;
       if (!resident && body.isResident) {
-        return failure(409, "RESIDENT_NOT_REGISTERED");
+        return { kind: "resident-not-registered" };
       }
       if (
         (
@@ -76,7 +85,7 @@ export function checkIn(
           )
         ).rowCount
       ) {
-        return failure(409, "ACTIVE_SESSION_EXISTS");
+        return { kind: "active-session-exists" };
       }
       const category = resident ? "RESIDENT" : body.vehicleType;
       const available = await q(
@@ -84,7 +93,7 @@ export function checkIn(
         [PILOT.code, category],
       );
       if (!available.rowCount) {
-        return failure(409, "CATEGORY_FULL");
+        return { kind: "category-full" };
       }
       const number = (available.rows[0] as { number: number }).number;
       const sessionId = randomUUID();
@@ -104,8 +113,9 @@ export function checkIn(
         [gateId, id, sessionId],
       );
       return {
-        status: 201,
-        body: { parkingSessionId: sessionId, parkingSpaceId: number },
+        kind: "allocated",
+        sessionId,
+        spaceNumber: number,
       };
     },
     deadline,

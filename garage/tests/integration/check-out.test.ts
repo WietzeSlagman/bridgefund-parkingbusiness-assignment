@@ -310,7 +310,9 @@ describe("PB-04 checkout", () => {
         new Deadline(1500),
         () => new Date(confirmed.getTime() + offset),
       );
-      expect(result.status).toBe(offset === 900_000 ? 402 : 200);
+      expect(result.kind).toBe(
+        offset === 900_000 ? "payment-required" : "authorized",
+      );
     }
   });
 });
