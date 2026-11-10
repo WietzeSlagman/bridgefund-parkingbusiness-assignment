@@ -1,0 +1,244 @@
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #123b35;
+  background: #f5f6ef;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+.dashboard {
+  max-width: 76rem;
+  margin: auto;
+  padding: 0 2rem 5rem;
+}
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid #d5dfd5;
+}
+.wordmark {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.wordmark span {
+  display: grid;
+  place-items: center;
+  background: #174d41;
+  color: #d7f36d;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.7rem;
+}
+.location {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #516b62;
+}
+.intro {
+  background: #d9eea3;
+  border-radius: 1.5rem;
+  margin: 2rem 0 3rem;
+  padding: clamp(2rem, 5vw, 4.5rem);
+  position: relative;
+  overflow: hidden;
+}
+.intro::after {
+  content: "";
+  position: absolute;
+  width: 19rem;
+  height: 19rem;
+  border: 3rem solid #c5e484;
+  border-radius: 50%;
+  right: -4rem;
+  top: -7rem;
+  pointer-events: none;
+}
+.eyebrow {
+  margin: 0 0 0.7rem;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+}
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+h1 {
+  max-width: 12ch;
+  font-size: clamp(3rem, 7vw, 6rem);
+  line-height: 0.98;
+  letter-spacing: -0.065em;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+h1 em {
+  font-style: normal;
+  color: #437a55;
+}
+.intro-copy {
+  max-width: 36rem;
+  line-height: 1.6;
+  margin-bottom: 0;
+  position: relative;
+  z-index: 1;
+}
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+}
+h2 {
+  letter-spacing: -0.035em;
+}
+.toolbar h2 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  margin-bottom: 0;
+}
+button {
+  border: 0;
+  border-radius: 999px;
+  background: #174d41;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.9rem 1.4rem;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  background: #286452;
+}
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+button:focus-visible {
+  outline: 3px solid #b27a00;
+  outline-offset: 3px;
+}
+.toolbar button {
+  display: grid;
+}
+.refresh-label {
+  grid-area: 1 / 1;
+}
+.refresh-label[aria-hidden="true"],
+.loading-status[aria-hidden="true"] {
+  visibility: hidden;
+}
+.update-status {
+  color: #536b61;
+  font-size: 0.875rem;
+  margin: 1.2rem 0;
+}
+.update-status p {
+  margin: 0.35rem 0;
+}
+.spaces {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.spaces article {
+  background: #fff;
+  border: 1px solid #dce6da;
+  border-radius: 1.25rem;
+  padding: 1.6rem;
+  box-shadow: 0 8px 25px #123b350a;
+}
+.spaces h2 {
+  font-size: 1rem;
+  margin-bottom: 1.8rem;
+}
+.count {
+  color: #536b61;
+  margin-bottom: 1.4rem;
+}
+.count strong {
+  color: #123b35;
+  font-size: 3.5rem;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  margin-right: 0.3rem;
+}
+.badge {
+  display: inline-block;
+  margin: 0;
+  border-radius: 999px;
+  background: #e6f5ce;
+  color: #275c36;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.badge.full {
+  background: #fff0dc;
+  color: #764400;
+}
+.activity {
+  margin-top: 3rem;
+  border-top: 1px solid #d5dfd5;
+  padding-top: 2rem;
+  max-width: 55rem;
+}
+.activity h2 {
+  font-size: 1.6rem;
+  margin-bottom: 0.7rem;
+}
+.activity > p:not(.eyebrow) {
+  color: #536b61;
+  line-height: 1.6;
+}
+.activity ul {
+  list-style: none;
+  padding: 0;
+}
+.activity li {
+  background: white;
+  border-bottom: 1px solid #dce6da;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .dashboard {
+    padding: 0 1rem 3rem;
+  }
+  .masthead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .intro {
+    margin: 1rem 0 2rem;
+  }
+  .intro::after {
+    opacity: 0.5;
+  }
+  .toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .spaces {
+    grid-template-columns: 1fr;
+  }
+  .spaces h2 {
+    margin-bottom: 1rem;
+  }
+}

@@ -1,5 +1,17 @@
 # Journal
 
+## 2026-11-10 — Display request diagnosis
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, curl, process/socket inspection, patch, npm, Vitest, Prettier and Vite. Time and cost: unknown.
+- The existing Vite proxy targeted port 3001, while the documented development API defaults to 3000 and the running demo API was on 3301. A request through the existing Vite server timed out; the demo API returned availability directly. Defaulted the proxy to 3000 and added a process-environment override for alternate local APIs, documenting restart and deployment caveats. The React effect deliberately aborts at five seconds and on unmount; its entry point does not enable Strict Mode. Added Strict Mode cleanup and actual Vite proxy regression tests without changing effect behavior.
+- Eight frontend tests, format check, build and npm audit passed. A separately started Vite instance configured for 3301 returned the live demo API's 200 response. No database was modified, and a browser visual/network test and persistent development API on 3000 were not exercised. Mistakes: none known.
+
+## 2026-11-10 — Frontend loading layout
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, Vitest, Prettier and Vite. Time and cost: unknown.
+- Reserved the loading-status line and overlaid both refresh-button labels so loading transitions do not change their layout; retained accessible active labels and existing refresh behavior. Added a deferred-request test covering initial load, polling and manual refresh. The existing frontend is untracked and was preserved.
+- Frontend tests (5), format check and build passed on Node 26.13.0; `git diff --check` passed. The jsdom test does not measure browser layout; visual verification remains outstanding. Mistakes: none known.
+
 ## 2026-11-10 — Load runner review corrections
 
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, TypeScript, ESLint, Prettier, Vitest, Docker Compose, PostgreSQL and simulator. Time and cost: unknown.

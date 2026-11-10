@@ -192,8 +192,14 @@ npm run dev
 ```
 
 Open the local URL printed by Vite (normally http://127.0.0.1:5173). Its
-development proxy forwards `/occupancy` to `http://127.0.0.1:3000`. If the API
-uses another address, adjust `frontend/vite.config.js` for local development.
+development proxy forwards `/occupancy` to `http://127.0.0.1:3000` by default.
+For a different local API, start Vite with an exported `DISPLAY_API_TARGET`, for
+example `DISPLAY_API_TARGET=http://127.0.0.1:3301 npm run dev` for the separate
+demo/load API. Restart Vite after changing it. Ensure the chosen API and its
+database are running and configured; the demo/load API uses its own setup and
+database. Requests taking over five seconds are aborted and retried by the
+display. A development React Strict Mode remount can also cancel its first
+request; it should immediately issue another.
 The proxy is not included in the production build: a deployment must serve the
 built files with a same-origin proxy for `/occupancy` to the API. The display is
 not a deployment-ready public server. Counts are recorded free allocations, not
