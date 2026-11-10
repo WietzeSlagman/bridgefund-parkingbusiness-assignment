@@ -1,5 +1,42 @@
 # Journal
 
+## 2026-11-10 — Documentation evidence correction handoff
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: exploration and development agents and patch tool. Time and cost: unknown.
+- Checked historical review and test evidence via exploration and referred stale PB-04 status and remaining-work corrections to the development workflow. The development agent reports confirming commit ancestry and passing `git diff --check`; no tests were rerun in this handoff. Mistakes: none known.
+
+## 2026-11-10 — PB-04 alignment and verification status
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git and patch tool. Time and cost: unknown.
+- Verified `63551c4` is in current history and checked the journal's focused independent review and historical fresh isolated PostgreSQL suite. Corrected stale alignment status in the architecture, plan and PB-04, PB-05 and PB-08 specs; distinguished completed evidence, ongoing spec-first process and outstanding independent and vendor verification. Preserved existing work and contracts. Documentation-only change; no application tests or database operations. Mistakes: none known.
+
+## 2026-11-10 — PB-04 status correction
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: Git, repository read/search and patch tool. Time and cost: unknown.
+- The user challenged the architecture's claim that the PB-04 alignment was uncommitted. Git confirms commit `63551c4` contains the PB-04 changes and there is no current PB-04 diff. Similar stale claims remain in PB-04, PB-05 and PB-08; independent-review status needs separate evidence.
+- Mistake: relayed the development agent's stale status without independently verifying Git history; detected through the user's question and corrected in the response.
+
+## 2026-11-10 — README handoff correction
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: Git, repository read, development agent and patch tool. Time and cost: unknown.
+- The user pointed out that the README did not reflect the requested focus. Inspection showed the prior edit had left a lengthy status and integration narrative at the top; referred a targeted restructuring to the development workflow and verified the revised introduction and quickstart placement. The development agent reported `git diff --check` passing.
+- Mistake: previously reported the README as focused on running without checking whether the result met the request; noticed after the user's correction. No independent full documentation review or application tests were performed.
+
+## 2026-11-10 — README operational restructure
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read, Git and patch. Time and cost: unknown.
+- Replaced the review and integration narrative in the README introduction with pilot status and a deployment caution, retaining operational recovery and migration safeguards; added missing timeout and payment details to the architecture. Documentation-only verification; no database operations. Mistakes: none known.
+
+## 2026-11-10 — Architecture documentation handoff
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: development agent and patch tool. Time and cost: unknown.
+- Referred the requested README and architecture restructuring to the development workflow. The agent reported checking links and diffs against implementation and specs; no independent review or tests were performed in this handoff. Mistakes: none known.
+
+## 2026-11-10 — Architecture and README documentation
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git and patch. Time and cost: unknown.
+- Consolidated payment replacement, pricing and vendor-integration rationale in the architecture and linked it from the operational README, retaining deployment and database safety warnings. Preserved existing staged and unstaged changes. Documentation checks only; no database operations. Mistakes: none known.
+
 ## 2026-11-10 — PB-04/PB-05 supersession review
 
 - Agent: independent review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm and Vitest. Time and cost: unknown.

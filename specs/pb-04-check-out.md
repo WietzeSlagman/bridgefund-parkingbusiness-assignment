@@ -28,7 +28,7 @@ The user accepted near-instant delivery and no double charge as pilot assumption
 - `BRIEF.md` PB-02, PB-04 and pricing; `docs/gates.md` and `docs/payment-provider.md` are supplied integration notes.
 - `docs/architecture.md` records cross-feature decisions; it does not change the supplied vendor promises.
 - `specs/pb-03-check-in.md`, current PB-03 persistence and `docs/verification-procedure.md`. PB-03 fixes await independent review per `PLAN.md`.
-- PB-05 specifies amount validation, payment identity, confirmation and current-balance replacement. Each feature spec must be committed before its implementation, with explicit user authorization; this retrospective alignment remains uncommitted until the user authorizes a commit.
+- PB-05 specifies amount validation, payment identity, confirmation and current-balance replacement. Each feature spec must be committed before its implementation, with explicit user authorization; this retrospective alignment landed in `63551c4`.
 
 ## Decisions, Assumptions, and Open Questions
 
@@ -147,4 +147,4 @@ Scope identity to stable authenticated gate ID, operation and request UUID. Cano
 
 ## Handoff Status
 
-The original PB-04 spec landed before implementation. PB-05 and its current-balance behavior have since landed; this retrospective amendment aligns PB-04 and has not been independently reviewed or committed. Quote abandonment and delayed webhook attribution remain accepted pilot limitations, not solved workflows. Vendor capabilities are assumptions, not confirmations. PB-03 fixes have outstanding independent review.
+The original PB-04 spec landed before implementation. PB-05 and its current-balance behavior have since landed; the retrospective PB-04 alignment was committed in `63551c4`. Independent review focused on replacement and closed-session precedence, not the entire amendment, and did not independently run database tests. Quote abandonment and delayed webhook attribution remain accepted pilot limitations, not solved workflows. Vendor capabilities are assumptions, not confirmations. PB-03 fixes have outstanding independent review.

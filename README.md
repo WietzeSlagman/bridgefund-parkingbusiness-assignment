@@ -1,104 +1,22 @@
 # ParkingBusiness assignment
 
-PB-03 check-in and resident administration are implemented but are **not ready
-for deployment**. The three latest independent-review findings have fixes and
-PostgreSQL-backed regression tests; the fixes have not had a further independent
-review. The latest independent review did not independently run database tests.
-PB-04 checkout and PB-06 occupancy are implemented as a pilot. PB-05 payment
-confirmation and its migrations are in-progress working-tree changes, not a
-committed release. All are subject to the limitations below and independent review.
-See [PLAN.md](PLAN.md), [the checkout spec](specs/pb-04-check-out.md), and
-[BRIEF.md](BRIEF.md).
-The per-attempt timer closes an acquired database connection on timeout and
-prevents a late success response. If COMMIT was already sent, its outcome may be
-unknown: retry the same gate request ID to recover the durable result. Timers
-cannot guarantee scheduling or network delivery, and the gate must correlate
-responses to its current vehicle event.
+This TypeScript backend implements the ParkingBusiness parking pilot: check-in,
+checkout, payment confirmation, resident administration and occupancy. PB-05
+and its migrations `0003`–`0005` landed in commit `b1ded0c`.
 
-Checkout accepts an exit-gate bearer credential, a unique `X-Request-Id` and
-`{ "parkingSessionId": "<uuid>", "isResident": false }`. A `402` reports an
-outstanding fixed quote and does not open the barrier; the gate must recheck the
-same request without starting a new payment for each repeated response. A `200`
-authorizes exit and releases the recorded space. Successful retries replay the
-original response. New interactions require new IDs. This pilot contract and
-rechecking behavior have not been confirmed by the gate vendor; it assumes that
-the gate can correlate late responses and abandons old interactions correctly.
+**Not ready for deployment:** vendor integration assumptions and payment and
+occupancy limitations preclude production use. See the [architecture and
+integration decisions](docs/architecture.md) before deployment.
 
-The signed `POST /webhooks/payments` records successful full-balance payments;
-the webhook never releases a space. Configure a strong `WEBHOOK_SECRET` shared
-with the provider, distinct from other credentials. It verifies exactly one
-lowercase hexadecimal HMAC-SHA256 over the raw JSON bytes; unsigned legacy
-requests are rejected. Identical successful payment IDs are idempotent, including
-after checkout; conflicting IDs and unexpected amounts return 409. Failed events
-for known sessions are logged without persistence. Operators must investigate
-structured payment diagnostics manually; logs do not reconcile or refund external charges. The
-provider may retry rejected events for 24 hours.
+## Prerequisites
 
-Checkout B replaces the current amount: if A displayed EUR 5 and B displays
-EUR 10, retrying A returns `409 CHECKOUT_SUPERSEDED`, not EUR 5. A previously
-committed `200` still replays. Gate handling of 409 is not vendor-confirmed.
-Unmatched signed confirmations are rejected and logged for investigation. The
-pilot assumes near-instant delivery; an old payment equal to a new balance is
-indistinguishable from the intended payment, and may be accepted.
-The schema holds fixed interaction amounts and session payment records, with a
-shared building lock for checkout and confirmations.
-The current payable amount is held on the current checkout request; PostgreSQL
-enforces at most one current request per session. Payment consumes that current
-request, and a later top-up makes a request current again.
-An interaction stores the session's paid total when its amount is issued; a later
-valid session payment indicates ordinary coverage, not payment-to-quote attribution.
-The provider's unsigned legacy-terminal requests are intentionally unsupported:
-`X-Terminal-Compat: 1` is not authentication. Drivers using those terminals cannot
-complete payment-dependent exit until upgrade or a separately authenticated
-integration. Delayed payments for abandoned or renewed quotes remain unresolved;
-do not treat them as safely attributable. Recorded release assumes physical
-departure, which is not detected. These limitations preclude production use.
-
-Public `GET /occupancy/{building}` lists recorded spaces and eligibility;
-`GET /occupancy/{building}/availability` counts free resident, visitor-car and
-visitor-motorcycle spaces separately. Both are uncached point-in-time reads, not
-physical sensors or guarantees of future availability. Unknown buildings return
-404; known buildings without a layout return an empty list and zero counts.
-Resident administration also uses a 1,500 ms transaction deadline, including
-database statement, lock and idle bounds and connection disposal on cancellation.
-An admin COMMIT interrupted after being sent can have an unknown outcome: inspect
-the registry before retrying, since admin requests do not have gate request IDs.
-
-## Pricing
-
-The category recorded at check-in determines the tariff; the checkout
-`isResident` field cannot change it. Residents park free. Visitor cars cost
-EUR 5 per started hour, capped at EUR 30 per Amsterdam calendar day; motorcycles
-cost EUR 3 per started hour, capped at EUR 18 per Amsterdam calendar day.
-Amounts are integer euro cents.
-
-The implementation divides actual elapsed time into one-hour blocks anchored at
-check-in. Each started block is charged to the Amsterdam local date on which it
-starts, with that date's cap applied independently. Midnight does not split a
-block; daylight-saving transitions change local-date attribution, not elapsed
-duration. Zero elapsed time costs zero, and reported session minutes are rounded
-down independently of billing. For example, a car from 23:45 to 00:45 costs EUR 5,
-attributed to the first day; one second more starts another EUR 5 block on the
-second day, before caps. The brief's 09:00–10:40 example of EUR 8.33 conflicts
-with its started-hour tariff: the implemented charge is EUR 10, not prorated.
-See the [checkout spec](specs/pb-04-check-out.md) and
-`garage/src/parking/helpers/pricing.ts`.
-
-## Local setup
-
-Parking-specific HTTP routers are in `garage/src/parking/routers/` and their
-validation, timing and HTTP helpers are in `garage/src/parking/helpers/`.
-Parking business operations are in `garage/src/parking/services/`; the shared
-building row lock is acquired before request and session writes, and future
-release paths must use the same lock order. Parking configuration, initialization and HTTP transaction failure mapping remain
-in `garage/src/parking/`; generic transaction mechanics and shared database code
-live in `garage/src/db/`.
-
-Requirements: Node.js 26 (verified with 26.13.0), npm (11.20.0), Docker and
+Node.js 26 (verified with 26.13.0), npm (11.20.0), Docker and
 Docker Compose. The backend uses Express, PostgreSQL, `pg` and Drizzle. Zod
 validates strict HTTP boundary schemas without coercion, reusing the shared plate
 normalizer. Vitest
 exercises HTTP and database integration. The lockfile pins installed packages.
+
+## Quickstart and configuration
 
 Clone with submodules as below, then from the repository root:
 
@@ -138,7 +56,8 @@ PARKING_BUILDINGS={"PB-AMS-2M8D":50}
 PARKING_KEYS={"entrance-1":["<key>"],"entrance-2":["<key>"],"exit-1":["<key>"],"exit-2":["<key>"],"admin":["<key>"]}
 ```
 
-`PARKING_BUILDINGS` configures the resident-admin allowlist and per-building
+`WEBHOOK_SECRET` must be shared with the payment provider and distinct from the
+gate and admin credentials. `PARKING_BUILDINGS` configures the resident-admin allowlist and per-building
 registration limits, not layouts or gate routing. PB-03 fixes the pilot code,
 its limit of 50 and its space layout in `garage/src/parking/pilot.ts`; changing
 these requires a revised contract, not an environment override. Other configured
@@ -157,7 +76,11 @@ complete new `PARKING_BUILDINGS` set and run `npm run db:update-buildings` from
 `garage/` against the verified intended database. The update retains existing
 buildings and rejects limits below existing registrations. Configure every
 instance identically before restarting; rolling configuration changes are not
-supported. To run from `garage/`:
+supported.
+
+## Run and operate
+
+From `garage/`, verify `DATABASE_URL` targets the intended database, then run:
 
 ```sh
 npm run db:migrate
@@ -167,6 +90,11 @@ npm run dev
 Or run `npm run build` followed by `npm start`. An HTTP request to `/` returns a
 JSON 404. There is no global body parser; the webhook installs a route-specific
 raw parser and authenticates the original bytes.
+
+If a gate transaction's COMMIT outcome is unknown, retry the same request ID to
+recover its durable result. Admin requests have no gate request ID: inspect the
+registry before retrying an interrupted COMMIT. Investigate payment diagnostics
+manually; logs do not reconcile or refund external charges.
 
 ## Verification and migrations
 
@@ -232,15 +160,14 @@ including different-amount stale quotes that `0004` could not identify. Resolve
 these and multiple unsuperseded pending quotes (even when covered) manually with
 the application stopped; it does not guess which request
 was replaced or alter payment data.
-The committed chain contains `0000`–`0002`; `0002` creates the PB-04 checkout
-tables, not the final PB-05 schema. The working-tree journal adds the currently
-uncommitted `0003`–`0005` migrations described above. An earlier, different
+The committed chain contains `0000`–`0005`; `0002` creates the PB-04 checkout
+tables and `0003`–`0005` are the PB-05 migrations described above. An earlier, different
 uncommitted checkout migration sequence was consolidated into `0002`; databases
 that applied that earlier sequence can have incompatible bookkeeping and schema.
 Do not confuse it with the current `0003`–`0005`, or reset, edit bookkeeping, or
 migrate an incompatible database blindly. Preserve its data and obtain an explicit
-migration/recovery decision. The in-progress chain may change before it lands.
-Earlier versions of the current uncommitted `0005` have also been applied in
+migration/recovery decision.
+Earlier versions of `0005` before it landed have also been applied in
 testing; matching migration names alone do not establish matching SQL or hashes.
 `db:generate` also requires a valid `DATABASE_URL`. The integration test uses
 Drizzle ORM's migrator on its verified connection; the separate `db:migrate`

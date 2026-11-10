@@ -46,9 +46,10 @@ administration flows, and how changes affect active sessions. Gate-to-building
 authorization, safe configuration changes, tariff history and cross-building
 isolation need explicit decisions and verification.
 
-**Status:** [PB-08 spec](specs/pb-08-multi-building.md) is provisional; scope
-and decisions are not yet sufficiently defined for an implementation-ready
-handoff.
+**Status:** [PB-08 spec](specs/pb-08-multi-building.md) records the approved
+defaults and detailed contracts. Its handoff remains conditional on the
+reviewed cross-spec checkpoint and migration checks identified there; vendor confirmation
+and other operational prerequisites remain necessary before deployment.
 
 ## Parking garage subscriptions and reservations
 

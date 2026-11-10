@@ -2,7 +2,7 @@
 
 ## Purpose and status
 
-This is the agreed overarching sequence for the ParkingBusiness assignment. It is a planning artifact, not an implementation specification. Feature-specific tasks and contracts belong in the corresponding specs. The foundation and PB-03 implementation exist; the latest review findings have fixes awaiting independent review.
+This is the agreed overarching sequence for the ParkingBusiness assignment. It is a planning artifact, not an implementation specification. Feature-specific tasks and contracts belong in the corresponding specs. PB-03 through PB-06 are implemented as a pilot; PB-05 landed in `b1ded0c`. PB-03's latest fixes await independent review; the landed PB-05 rereview did not independently run database tests or the simulator. Checklist items below are not claims of complete independent verification.
 
 Sources: `BRIEF.md`, `docs/gates.md`, `docs/payment-provider.md`, and `AGENTS.md`. The pilot building is `PB-AMS-2M8D`; future buildings may have different layouts and tariffs. Preserve the original assignment history and supplied integration material.
 
@@ -62,11 +62,13 @@ For each step: implement or document its agreed scope, verify acceptance criteri
 
 **Review/done:** Spec, implementation and tests agree; concurrent successful requests cannot allocate the same space and retry behavior is demonstrated.
 
-**Current handoff:** PB-03 is not deployment-ready. Fixes for the latest three independent-review findings (admin lock bounds, missing-building error, and request-record storage fault coverage) passed the developer's PostgreSQL-backed suite and configured checks, but have not been independently reviewed. The previous independent review did not independently run database tests. PB-04–PB-06 each still require their own spec-first commit before implementation.
+**Current handoff:** PB-03 is not deployment-ready. Fixes for the latest three independent-review findings (admin lock bounds, missing-building error, and request-record storage fault coverage) passed the developer's PostgreSQL-backed suite and configured checks, but have not been independently reviewed. The previous independent review did not independently run database tests. PB-04–PB-06 specs and implementations have since landed; subsequent substantive spec changes still require the spec-first checkpoint for future implementation.
 
 ## 5. PB-04 — Checkout and pricing
 
 **Outcome:** An authenticated exit gate receives the specified checkout result and amount.
+
+**Status:** PB-04 spec and implementation landed; the retrospective PB-05 alignment amendment landed in `63551c4`. Independent review focused on replacement and closed-session precedence, not the entire amendment, and did not independently run database tests. The checklist remains a verification handoff rather than a statement that checkout is unimplemented.
 
 - [ ] Specify pricing, time zones, caps, rounding, errors, retries, residency mismatch, price fixation and session/space state; coordinate the contract with PB-05. Dependencies: pricing and lifecycle decisions and PB-03 persistence.
 - [ ] Obtain user authorization and commit the spec before implementation.
@@ -78,6 +80,8 @@ For each step: implement or document its agreed scope, verify acceptance criteri
 
 **Outcome:** Authenticated payment events safely update payment and session state, and the gate can determine whether exit is permitted.
 
+**Status:** Spec decisions landed in `a96c59b` and `76bdf8e`, before implementation `b1ded0c`. The implementation has been independently rereviewed, but that rereview did not run PostgreSQL tests or the simulator. The unchecked verification and review items below remain delivery checkpoints, not a claim that the implementation is uncommitted. See README for accepted assumptions and deployment blockers.
+
 - [ ] Specify HMAC-SHA256 over raw bytes, amount/currency checks, payment IDs and attempts, duplicate/conflicting and out-of-order deliveries, retries, legacy compatibility and gate-facing status. Dependencies: checkout, lifecycle and authentication decisions.
 - [ ] Obtain user authorization and commit the spec before implementation.
 - [ ] Implement the webhook and agreed gate-facing status behavior. Verify valid/invalid signatures, altered bodies, amount mismatches, duplicates, conflicting IDs, concurrent delivery and failed-then-paid/out-of-order attempts against PostgreSQL.
@@ -88,6 +92,8 @@ For each step: implement or document its agreed scope, verify acceptance criteri
 ## 7. PB-06 — Public occupancy
 
 **Outcome:** A public endpoint describes occupancy usefully without exposing unnecessary personal data.
+
+**Status:** PB-06 spec and pilot implementation landed; see the journal for prior developer verification. Independent delivery verification remains outstanding.
 
 - [ ] Specify response, eligibility categories, lifecycle meaning and errors. Dependencies: agreed allocation and release rules.
 - [ ] Obtain user authorization and commit the spec before implementation.
