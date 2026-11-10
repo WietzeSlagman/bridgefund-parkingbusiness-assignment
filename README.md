@@ -25,15 +25,21 @@ cd garage
 npm ci
 ```
 
-Set two distinct local-only passwords in your shell; use URL-safe characters
-or URL-encode them in the URLs. Do not reuse production credentials. Compose
-requires both variables, even when starting only one service:
+### Quick local demo (public throwaway credentials)
+
+From `garage/`, copy the example and start the databases:
 
 ```sh
-export DEV_DB_PASSWORD='<your-local-dev-password>'
-export TEST_DB_PASSWORD='<your-local-test-password>'
+cp .env.example .env
 docker compose -p parkingbusiness-foundation up -d --wait
 ```
+
+The example contains publicly known passwords and API keys, **only for an
+isolated local demo**. Never use them for a deployed service, real data or an
+untrusted network. Shell exports override file values, including empty exports;
+clear unintended exports before using this example. If overriding either database
+password, also update the matching URL; Compose and the application read these
+as separate variables.
 
 The development database is persisted in a Docker volume on loopback port
 55432. The separate test server uses loopback port 55433 and temporary storage;
@@ -43,18 +49,38 @@ the environment variable does not rotate an existing database password. Do not
 delete the development volume to fix a password mismatch without first protecting
 its data.
 
-Copy `garage/.env.example` to `garage/.env` and replace the placeholder with
-the development password. `.env` is ignored by Git. `DATABASE_URL` is required;
-`PORT` defaults to 3000 and must be an integer from 1 to 65535. The server
-checks the database connection at startup. Parking startup also requires the
-following environment variables, with each placeholder replaced by a different,
-randomly generated secret. Keep real keys out of source control and shell history.
+### AI-agent development (secrets outside files)
+
+Instead of the demo file, copy `garage/.env.agent.example` to `garage/.env`.
+It contains only nonsecret settings. Before starting Compose, migrations, the
+server or tests, inject the following into the parent shell environment using a
+trusted secret manager or other private mechanism (not literal commands saved in
+shell history). Compose requires both database passwords even when starting one
+service. Use distinct local credentials, URL-encode special password characters
+in URLs, and ensure each URL matches its corresponding Compose password.
 
 ```text
-WEBHOOK_SECRET=<strong-unique-provider-secret>
-PARKING_BUILDINGS={"PB-AMS-2M8D":50}
-PARKING_KEYS={"entrance-1":["<key>"],"entrance-2":["<key>"],"exit-1":["<key>"],"exit-2":["<key>"],"admin":["<key>"]}
+DEV_DB_PASSWORD, TEST_DB_PASSWORD
+DATABASE_URL=postgresql://garage_dev:<url-encoded-dev-password>@localhost:55432/garage_dev
+TEST_DATABASE_URL=postgresql://garage_test:<url-encoded-test-password>@localhost:55433/garage_test
+WEBHOOK_SECRET=<strong-unique-secret>
+PARKING_KEYS={"entrance-1":["<key-1>"],"entrance-2":["<key-2>"],"exit-1":["<key-3>"],"exit-2":["<key-4>"],"admin":["<key-5>"]}
 ```
+
+Export each variable so child processes inherit it. Use different random keys
+for each identity and the webhook. `.env` and `.env.*` are ignored except the
+two examples; never put real secrets in the examples or source control. The
+server and Drizzle commands load `garage/.env` through dotenv without overriding
+the environment; Compose also prefers exported variables over its `.env` file.
+Run these commands from `garage/`. Vitest does not load `.env`: export
+`TEST_DATABASE_URL` separately for tests, including with the demo file. Avoid
+printing environments, `docker compose config`, or secret-bearing URLs in agent
+transcripts and logs. An agent or process inheriting secrets can still read them:
+shell exports are not a security boundary against that process. Restrict agent
+access and use only disposable credentials where exposure is unacceptable.
+
+`DATABASE_URL` is required; `PORT` defaults to 3000 and must be an integer from
+1 to 65535. The server checks the database connection at startup.
 
 `WEBHOOK_SECRET` must be shared with the payment provider and distinct from the
 gate and admin credentials. `PARKING_BUILDINGS` configures the resident-admin allowlist and per-building
@@ -91,6 +117,13 @@ Or run `npm run build` followed by `npm start`. An HTTP request to `/` returns a
 JSON 404. There is no global body parser; the webhook installs a route-specific
 raw parser and authenticates the original bytes.
 
+The generated API contract is [`garage/openapi/v1.json`](garage/openapi/v1.json);
+there is no documentation HTTP endpoint and the artifact version does not add a
+URL prefix. After changing contract definitions or schemas, run
+`npm run openapi:generate` from `garage/` and review the artifact. CI and local
+verification use `npm run openapi:check` to detect drift. Runtime validation,
+especially custom refinements and middleware ordering, remains authoritative.
+
 If a gate transaction's COMMIT outcome is unknown, retry the same request ID to
 recover its durable result. Admin requests have no gate request ID: inspect the
 registry before retrying an interrupted COMMIT. Investigate payment diagnostics
@@ -123,16 +156,18 @@ Tests apply migrations; parking tests delete only their randomly named fixtures
 after verifying the database identity. The fresh-migration test also creates and
 drops a uniquely named database on that verified isolated test server; its test
 role therefore needs `CREATEDB` privileges. Never point it at a shared server.
-Configure the test URL
-separately (a password is required):
+Configure the test URL separately (a password is required). For the public
+demo, export `TEST_DATABASE_URL` as
+`postgresql://garage_test:local_test_only@localhost:55433/garage_test`;
+for the agent setup inject the matching secret URL. Then run:
 
 ```sh
-export TEST_DATABASE_URL="postgresql://garage_test:${TEST_DB_PASSWORD}@localhost:55433/garage_test"
 docker compose -p parkingbusiness-foundation exec -T test-db psql -U garage_test -d garage_test -c 'select current_database(), current_user;'
 npm run lint
 npm run format:check
 npm run typecheck
 npm run build
+npm run openapi:check
 npm test
 ```
 
