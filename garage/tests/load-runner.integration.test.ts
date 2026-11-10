@@ -6,7 +6,7 @@ const exec = promisify(execFile);
 const run = (mode: string, env: NodeJS.ProcessEnv) =>
   exec(process.execPath, ["--import", "tsx", "src/tools/run.ts", mode], {
     env: { ...process.env, ...env },
-    timeout: 30000,
+    timeout: mode === "visual" ? 60000 : 30000,
   });
 
 // The operator must start and verify the isolated load API and its container first.
@@ -36,5 +36,16 @@ describe.skipIf(process.env.RUN_LOAD_INTEGRATION !== "1")(
       expect(load.stdout).toContain('"payment:204": 2');
       expect(load.stdout).toContain('"checkout-release:200": 2');
     }, 30000);
+    it("runs visual phases with real simulator payments and releases all cars", async () => {
+      const visual = await run("visual", {
+        VISUAL_SESSIONS: "2",
+        VISUAL_HOLD_SECONDS: "6",
+      });
+      expect(visual.stdout).toContain("Visual state: 2 visitor cars allocated");
+      expect(visual.stdout).toContain("Visual state: 0 visitor cars allocated");
+      expect(visual.stdout.match(/HTTP 204/g)).toHaveLength(8);
+      expect(visual.stdout).toContain('"checkout-release:200": 2');
+      expect(visual.stdout).not.toContain("sessionsPerSecond");
+    }, 60000);
   },
 );

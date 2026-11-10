@@ -79,6 +79,7 @@ In another terminal, from `garage/` (the scripts load the same file):
 
 ```sh
 npm run start:demo
+npm run start:demo:visual
 LOAD_SESSIONS=80 LOAD_CONCURRENCY=8 npm run start:load-test
 RUN_LOAD_INTEGRATION=1 node --env-file=.env.load ./node_modules/vitest/vitest.mjs run --no-file-parallelism tests/load-runner.integration.test.ts
 ```
@@ -102,6 +103,29 @@ so this is not a constant-arrival-rate or saturation test. It reports per-route
 status counts and nearest-rank p50/p95/max latency, plus completed sessions per
 second. Request timings include client-side processing; the elapsed measurement
 includes the batch occupancy checks but excludes initial target/empty checks.
+
+For the opt-in visual demo, first start the verified disposable API above. In a
+separate terminal from the repository root run:
+
+```sh
+cd frontend
+npm ci
+DISPLAY_API_TARGET=http://127.0.0.1:3301 npm run dev
+```
+
+Open the URL printed by Vite, then from `garage/` run `npm run start:demo:visual`.
+It schedules eight visitor arrivals and departures, alternating both entrance and
+both exit gates, with no overlapping gate operations. It keeps up to two cars
+parked, interleaves departures with later arrivals, and uses the supplied simulator
+for each payment. After each arrival or release it verifies occupancy and holds
+the state for 12 seconds, including the final empty state. Override with e.g.
+`VISUAL_SESSIONS=4 VISUAL_HOLD_SECONDS=12 npm run start:demo:visual`;
+allowed ranges are 2–20 cars and 6–60 seconds per hold. There are two holds
+per car (96 seconds by default), plus request and simulator time; this is not a
+hard overall deadline or a model of physical gate timing. The summary reports counts and elapsed time, not performance claims;
+simulator responses appear separately. Polling is approximately every five
+seconds, so the display samples states and may miss intermediate changes,
+particularly on failures or slow requests. Stop Vite separately when finished.
 
 The runners require exclusive use of this disposable API/database. A failed or
 interrupted run can leave active sessions or retained request/payment records;

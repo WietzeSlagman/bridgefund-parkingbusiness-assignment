@@ -11,6 +11,7 @@
     "start": "node dist/server.js",
     "start:demo-load-api": "node --env-file=.env.load --import tsx src/tools/load-api.ts",
     "start:demo": "node --env-file=.env.load --import tsx src/tools/run.ts demo",
+    "start:demo:visual": "node --env-file=.env.load --import tsx src/tools/run.ts visual",
     "start:load-test": "node --env-file=.env.load --import tsx src/tools/run.ts load",
     "db:migrate:load": "node --env-file=.env.load --import tsx src/tools/migrate-load.ts",
     "build": "tsc -p tsconfig.build.json",

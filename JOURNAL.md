@@ -1,5 +1,23 @@
 # Journal
 
+## 2026-11-10 — Mixed visual demo
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, npm, Vitest, TypeScript, ESLint, Prettier, Docker and socket inspection. Time and cost: unknown.
+- Replaced visual batches with a deterministic, serial alternating-gate arrival/departure schedule, verified and held each occupancy state, and reused the real simulator and per-session checkout ID. Preserved the pre-existing working-tree changes. The schedule is illustrative, not physical timing.
+- Backend unit tests (81), lint, typecheck, build, format and OpenAPI checks passed. Real isolated verification and port-binding guard tests were not run: ports 3301, 55434 and 55433 were occupied by pre-existing services, which were left untouched. Mistake: initial lint caught async test callbacks without awaits; changed them to return promises and reran checks.
+
+## 2026-11-10 — Brief and project status review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, Vitest and parallel review agents. Time and cost: unknown.
+- Compared the brief, integration notes, implementation status, documentation and verification evidence. The frontend suite reported 7 passing tests and 1 failure: the current uncommitted proxy default is 3301 while its test expects 3000. Backend review reported passing lint, format, typecheck, OpenAPI check and 72 unit tests; no database tests were run because isolation was not independently established. Gate/payment integration assumptions and delivery checks remain open.
+- Mistake: a delegated reviewer appended a journal entry despite being asked not to, and incorrectly described the overall request as read-only. The entry was noticed during the working-tree check and retained as historical evidence; no application changes were made by this review. Concurrent working-tree changes were not treated as verified delivery.
+
+## 2026-11-10 — Independent backend review
+
+- Agent: review assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, npm, ESLint, Prettier, TypeScript and Vitest. Time and cost: unknown.
+- Reviewed backend behavior against the brief, integration notes and PB-03–PB-06 specs. Lint, format check, typecheck, OpenAPI check and 72 unit tests passed. No database tests or migrations were run because an isolated target was not independently verified. Vendor-dependent payment and gate behavior remains a deployment limitation.
+- Mistakes: none known. This required journal entry is the only review-side file change, despite the requested read-only review. A frontend configuration change appeared during the review and was left untouched.
+
 ## 2026-11-10 — Display request diagnosis
 
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, curl, process/socket inspection, patch, npm, Vitest, Prettier and Vite. Time and cost: unknown.
@@ -1024,3 +1042,10 @@
 - Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, web fetch, patch, npm, Vitest, Vite and Prettier. Time and cost: unknown.
 - Refreshed the existing display with a responsive green palette, larger typography, cards and visible keyboard focus, preserving polling and availability semantics. The BridgeFund page was fetched as text, but its visual palette could not be reliably verified; the colors are an interpretation, not an exact brand match. No assets or dependencies added.
 - Frontend tests (four), build and format check passed. No real-browser visual or assistive-technology testing was performed. Mistakes: none known.
+
+## 2026-11-10 — Opt-in visual occupancy demo
+
+- Agent: development assistant; model: `openai/gpt-6.1-terra`. Tools: repository read/search, Git, patch, Node.js, npm, ESLint, Prettier, TypeScript, Vitest, Docker Compose and socket inspection. Time and cost: unknown.
+- Added a bounded multi-car visual runner with verified occupied and released holds, simulator payments, interruption warnings, and non-benchmark summary; retained fast demo and load defaults. Documented explicit display target, sampling and disposable cleanup. Preserved the unrelated frontend proxy modification and concurrent journal entries.
+- Lint, formatting, typecheck, build, OpenAPI check and 86 unit/safety tests passed. Real-API, guard-server and browser tests were not run: ports 55434 and 3301 were occupied by pre-existing services whose ownership was not established. No database was mutated. Added opt-in real-API and guard tests remain unexecuted.
+- Mistakes: an initial README patch targeted the backend `npm run dev` instead of the frontend command; inspection caught and corrected it. Initial lint flagged console use and a later lint warned about braces; corrected both.

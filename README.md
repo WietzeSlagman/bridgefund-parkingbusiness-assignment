@@ -64,11 +64,13 @@ Leave the API running. In a second terminal from the repository root:
 ```sh
 cd garage
 npm run start:demo
+# Optional visual demo (after the fast demo finishes):
+npm run start:demo:visual
 # Optional, after the demo finishes and with exclusive use of the empty garage:
 LOAD_SESSIONS=80 LOAD_CONCURRENCY=8 npm run start:load-test
 ```
 
-Both runners use `.env.load`, the API on `127.0.0.1:3301` and the same disposable
+All runners use `.env.load`, the API on `127.0.0.1:3301` and the same disposable
 database, not the normal development API. A successful demo checks the supplied
 simulator's declined/retry scenario and four HTTP 204 results. A failed or interrupted
 run can leave active sessions; do not retry against a nonempty garage. See
@@ -188,14 +190,14 @@ port 3000 as above first. In a second terminal from the repository root:
 ```sh
 cd frontend
 npm ci
-npm run dev
+DISPLAY_API_TARGET=http://127.0.0.1:3000 npm run dev
 ```
 
-Open the local URL printed by Vite (normally http://127.0.0.1:5173). Its
-development proxy forwards `/occupancy` to `http://127.0.0.1:3000` by default.
-For a different local API, start Vite with an exported `DISPLAY_API_TARGET`, for
-example `DISPLAY_API_TARGET=http://127.0.0.1:3301 npm run dev` for the separate
-demo/load API. Restart Vite after changing it. Ensure the chosen API and its
+Open the local URL printed by Vite (normally http://127.0.0.1:5173). For the
+disposable demo/load API instead, in `frontend/` run
+`DISPLAY_API_TARGET=http://127.0.0.1:3301 npm run dev`, then run
+`npm run start:demo:visual` in `garage/` as above. Set the target explicitly
+and restart Vite after changing it. Ensure the chosen API and its
 database are running and configured; the demo/load API uses its own setup and
 database. Requests taking over five seconds are aborted and retried by the
 display. A development React Strict Mode remount can also cancel its first

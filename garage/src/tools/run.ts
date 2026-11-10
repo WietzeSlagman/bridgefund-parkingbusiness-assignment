@@ -1,14 +1,15 @@
 import { createHmac, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { setTimeout as delay } from "node:timers/promises";
 import {
   apiOrigin,
   assertSimulatorStatuses,
-  boundedInteger,
   isVisitorCarSpace,
   percentile,
   required,
 } from "./safety.js";
+import { runnerOptions, visualSchedule } from "./visual.js";
 
 type Space = { parkingSpaceId: number; isOccupied: boolean };
 type Session = {
@@ -25,6 +26,21 @@ const entry = required("LOAD_ENTRANCE_KEY");
 const exit = required("LOAD_EXIT_KEY");
 const secret = required("LOAD_WEBHOOK_SECRET");
 const token = required("LOAD_RUN_TOKEN");
+const interruption = new AbortController();
+function logVisual(message: string): void {
+  // eslint-disable-next-line no-console -- show visual phase transitions
+  console.log(message);
+}
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => {
+    interruption.abort();
+    // eslint-disable-next-line no-console -- warn that in-flight requests may have committed
+    console.error(
+      "Interrupted; active sessions may remain. Stop the API and discard only the verified owned disposable container.",
+    );
+    process.exitCode = signal === "SIGINT" ? 130 : 143;
+  });
+}
 
 async function request(
   name: string,
@@ -36,7 +52,10 @@ async function request(
     const response = await fetch(apiOrigin + path, {
       ...init,
       redirect: "error",
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.any([
+        AbortSignal.timeout(10000),
+        interruption.signal,
+      ]),
     });
     statuses[`${name}:${response.status}`] =
       (statuses[`${name}:${response.status}`] ?? 0) + 1;
@@ -117,36 +136,69 @@ function verifySpaces(spaces: Space[], expected: number[]): void {
     throw new Error("Occupancy does not match expected allocations");
   }
 }
+async function checkIn(key: string): Promise<Session> {
+  const body = JSON.stringify({
+    vehicleType: "CAR",
+    isResident: false,
+    licensePlate: `L${randomUUID().replaceAll("-", "").slice(0, 15)}`,
+  });
+  const result = await request(
+    "check-in",
+    "/check-in",
+    post(body, key, randomUUID()),
+  );
+  expectStatus(result, 201, "check-in");
+  const data = result.data as {
+    parkingSessionId?: unknown;
+    parkingSpaceId?: unknown;
+  };
+  if (
+    typeof data?.parkingSessionId !== "string" ||
+    !isVisitorCarSpace(data.parkingSpaceId)
+  ) {
+    throw new Error("Invalid check-in response");
+  }
+  return {
+    parkingSessionId: data.parkingSessionId,
+    parkingSpaceId: data.parkingSpaceId,
+    checkoutId: randomUUID(),
+  };
+}
+
+async function quote(s: Session, key: string): Promise<void> {
+  const result = await request(
+    "checkout-quote",
+    "/check-out",
+    post(
+      JSON.stringify({
+        parkingSessionId: s.parkingSessionId,
+        isResident: false,
+      }),
+      key,
+      s.checkoutId,
+    ),
+  );
+  expectStatus(result, 402, "checkout quote");
+  const data = result.data as {
+    amountDue?: { value?: unknown; currency?: unknown };
+    parkingSpaceId?: unknown;
+  };
+  if (
+    data.parkingSpaceId !== s.parkingSpaceId ||
+    !Number.isSafeInteger(data.amountDue?.value) ||
+    (data.amountDue?.value as number) <= 0 ||
+    data.amountDue?.currency !== "EUR"
+  ) {
+    throw new Error("Invalid checkout quote");
+  }
+  s.amount = data.amountDue?.value as number;
+}
+
 async function runBatch(count: number, demo: boolean): Promise<void> {
   const sessions: Session[] = [];
-  const slots = Array.from({ length: count }, () => randomUUID());
-  await phase(slots, async (id) => {
-    const body = JSON.stringify({
-      vehicleType: "CAR",
-      isResident: false,
-      licensePlate: `L${randomUUID().replaceAll("-", "").slice(0, 15)}`,
-    });
-    const result = await request(
-      "check-in",
-      "/check-in",
-      post(body, entry, id),
-    );
-    expectStatus(result, 201, "check-in");
-    const data = result.data as {
-      parkingSessionId?: unknown;
-      parkingSpaceId?: unknown;
-    };
-    if (
-      typeof data?.parkingSessionId !== "string" ||
-      !isVisitorCarSpace(data.parkingSpaceId)
-    ) {
-      throw new Error("Invalid check-in response");
-    }
-    sessions.push({
-      parkingSessionId: data.parkingSessionId,
-      parkingSpaceId: data.parkingSpaceId,
-      checkoutId: randomUUID(),
-    });
+  const slots = Array.from({ length: count });
+  await phase(slots, async () => {
+    sessions.push(await checkIn(entry));
   });
   if (new Set(sessions.map((s) => s.parkingSpaceId)).size !== count) {
     throw new Error("Duplicate concurrent allocation");
@@ -155,126 +207,96 @@ async function runBatch(count: number, demo: boolean): Promise<void> {
     await occupancy(),
     sessions.map((s) => s.parkingSpaceId),
   );
-  await phase(sessions, async (s) => {
-    const result = await request(
-      "checkout-quote",
-      "/check-out",
-      post(
-        JSON.stringify({
-          parkingSessionId: s.parkingSessionId,
-          isResident: false,
-        }),
-        exit,
-        s.checkoutId,
-      ),
-    );
-    expectStatus(result, 402, "checkout quote");
-    const data = result.data as {
-      amountDue?: { value?: unknown; currency?: unknown };
-      parkingSpaceId?: unknown;
-    };
-    if (
-      data.parkingSpaceId !== s.parkingSpaceId ||
-      !Number.isSafeInteger(data.amountDue?.value) ||
-      (data.amountDue?.value as number) <= 0 ||
-      data.amountDue?.currency !== "EUR"
-    ) {
-      throw new Error("Invalid checkout quote");
-    }
-    s.amount = data.amountDue?.value as number;
-  });
+  await phase(sessions, async (s) => quote(s, exit));
   verifySpaces(
     await occupancy(),
     sessions.map((s) => s.parkingSpaceId),
   );
-  await phase(sessions, async (s) => {
-    if (demo) {
-      const { stdout } = await exec(
-        process.execPath,
-        [
-          "../simulator/send-webhook.mjs",
-          "--session",
-          s.parkingSessionId,
-          "--amount",
-          String(s.amount),
-          "--scenario",
-          "declined-retry",
-          "--url",
-          `${apiOrigin}/webhooks/payments`,
-        ],
-        {
-          env: {
-            ...process.env,
-            WEBHOOK_SECRET: secret,
-            NO_PROXY: "127.0.0.1",
-            no_proxy: "127.0.0.1",
-          },
-          timeout: 15000,
-        },
-      );
-      assertSimulatorStatuses(stdout);
-      // eslint-disable-next-line no-console -- show actual simulator outcomes
-      console.log(stdout.trim());
-    } else {
-      const raw =
-        JSON.stringify({
-          paymentId: randomUUID(),
-          parkingSessionId: s.parkingSessionId,
-          amount: { value: s.amount, currency: "EUR" },
-          status: "PAID",
-        }) + "\n";
-      const signature = createHmac("sha256", secret).update(raw).digest("hex");
-      const result = await request("payment", "/webhooks/payments", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-signature": signature,
-        },
-        body: raw,
-      });
-      expectStatus(result, 204, "payment");
-    }
-  });
+  await phase(sessions, async (s) => pay(s, demo));
   verifySpaces(
     await occupancy(),
     sessions.map((s) => s.parkingSpaceId),
   );
-  await phase(sessions, async (s) => {
-    const result = await request(
-      "checkout-release",
-      "/check-out",
-      post(
-        JSON.stringify({
-          parkingSessionId: s.parkingSessionId,
-          isResident: false,
-        }),
-        exit,
-        s.checkoutId,
-      ),
-    );
-    expectStatus(result, 200, "checkout release");
-    const data = result.data as {
-      parkingSpaceId?: unknown;
-      amountDue?: { value?: unknown };
-    };
-    if (
-      data.parkingSpaceId !== s.parkingSpaceId ||
-      data.amountDue?.value !== 0
-    ) {
-      throw new Error("Invalid release response");
-    }
-  });
+  await phase(sessions, async (s) => release(s, exit));
   verifySpaces(await occupancy(), []);
+}
+async function pay(s: Session, demo: boolean): Promise<void> {
+  if (demo) {
+    const { stdout } = await exec(
+      process.execPath,
+      [
+        "../simulator/send-webhook.mjs",
+        "--session",
+        s.parkingSessionId,
+        "--amount",
+        String(s.amount),
+        "--scenario",
+        "declined-retry",
+        "--url",
+        `${apiOrigin}/webhooks/payments`,
+      ],
+      {
+        env: {
+          ...process.env,
+          WEBHOOK_SECRET: secret,
+          NO_PROXY: "127.0.0.1",
+          no_proxy: "127.0.0.1",
+        },
+        timeout: 15000,
+        signal: interruption.signal,
+      },
+    );
+    assertSimulatorStatuses(stdout);
+    // eslint-disable-next-line no-console -- show actual simulator outcomes
+    console.log(stdout.trim());
+  } else {
+    const raw =
+      JSON.stringify({
+        paymentId: randomUUID(),
+        parkingSessionId: s.parkingSessionId,
+        amount: { value: s.amount, currency: "EUR" },
+        status: "PAID",
+      }) + "\n";
+    const signature = createHmac("sha256", secret).update(raw).digest("hex");
+    const result = await request("payment", "/webhooks/payments", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-signature": signature,
+      },
+      body: raw,
+    });
+    expectStatus(result, 204, "payment");
+  }
+}
+async function release(s: Session, key: string): Promise<void> {
+  const result = await request(
+    "checkout-release",
+    "/check-out",
+    post(
+      JSON.stringify({
+        parkingSessionId: s.parkingSessionId,
+        isResident: false,
+      }),
+      key,
+      s.checkoutId,
+    ),
+  );
+  expectStatus(result, 200, "checkout release");
+  const data = result.data as {
+    parkingSpaceId?: unknown;
+    amountDue?: { value?: unknown };
+  };
+  if (data.parkingSpaceId !== s.parkingSpaceId || data.amountDue?.value !== 0) {
+    throw new Error("Invalid release response");
+  }
 }
 async function main(): Promise<void> {
   const mode = process.argv[2];
-  if (mode !== "demo" && mode !== "load") {
-    throw new Error("Expected demo or load");
+  if (mode !== "demo" && mode !== "load" && mode !== "visual") {
+    throw new Error("Expected demo, visual or load");
   }
-  const count =
-    mode === "demo" ? 1 : boundedInteger(process.env.LOAD_SESSIONS, 40, 10000);
-  const concurrency =
-    mode === "demo" ? 1 : boundedInteger(process.env.LOAD_CONCURRENCY, 8, 20);
+  const { count, concurrency, holdSeconds } = runnerOptions(mode, process.env);
   const target = await request("target", "/__load_target", {
     headers: { "x-load-token": token },
   });
@@ -287,10 +309,50 @@ async function main(): Promise<void> {
   }
   verifySpaces(await occupancy(), []);
   const start = performance.now();
-  for (let done = 0; done < count; done += concurrency) {
-    await runBatch(Math.min(concurrency, count - done), mode === "demo");
+  if (mode === "visual" && holdSeconds !== undefined) {
+    const entrances = [entry, required("LOAD_ENTRANCE_2_KEY")];
+    const exits = [exit, required("LOAD_EXIT_2_KEY")];
+    await visualSchedule(
+      count,
+      holdSeconds,
+      (gate) => checkIn(entrances[gate]),
+      async (session, gate) => {
+        await quote(session, exits[gate]);
+        await pay(session, true);
+        await release(session, exits[gate]);
+      },
+      async (sessions) =>
+        verifySpaces(
+          await occupancy(),
+          sessions.map((s) => s.parkingSpaceId),
+        ),
+      (ms) => delay(ms, undefined, { signal: interruption.signal }),
+      logVisual,
+    );
+  } else {
+    for (let done = 0; done < count; done += concurrency) {
+      await runBatch(Math.min(concurrency, count - done), mode !== "load");
+    }
   }
   const elapsed = (performance.now() - start) / 1000;
+  if (holdSeconds !== undefined) {
+    // eslint-disable-next-line no-console -- visual demo summary, not a benchmark
+    console.log(
+      JSON.stringify(
+        {
+          mode,
+          sessions: count,
+          holdSeconds,
+          elapsedSeconds: elapsed,
+          statuses,
+          note: "Simulator payment responses are printed separately; timings include intentional holds and are not a benchmark.",
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
   const metrics = Object.fromEntries(
     Object.entries(times).map(([name, values]) => [
       name,
@@ -327,5 +389,5 @@ main().catch((error: unknown) => {
   );
   // eslint-disable-next-line no-console -- preserve observed status counts on failed runs
   console.error("Observed HTTP statuses:", JSON.stringify(statuses));
-  process.exitCode = 1;
+  process.exitCode ??= 1;
 });

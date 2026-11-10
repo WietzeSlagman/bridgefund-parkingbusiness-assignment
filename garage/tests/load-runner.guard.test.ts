@@ -45,12 +45,14 @@ const server = createServer((req, res) => {
     res.end("{}");
   }
 });
-const run = () =>
-  exec(process.execPath, ["--import", "tsx", "src/tools/run.ts", "load"], {
+const run = (mode = "load") =>
+  exec(process.execPath, ["--import", "tsx", "src/tools/run.ts", mode], {
     env: {
       ...process.env,
       LOAD_ENTRANCE_KEY: "entry",
+      LOAD_ENTRANCE_2_KEY: "entry2",
       LOAD_EXIT_KEY: "exit",
+      LOAD_EXIT_2_KEY: "exit2",
       LOAD_WEBHOOK_SECRET: "secret",
       LOAD_RUN_TOKEN: "token",
       LOAD_SESSIONS: "1",
@@ -92,6 +94,14 @@ describe("load runner fails closed", () => {
   it("rejects an unexpected target identity before any lifecycle or occupancy request", async () => {
     scenario = "wrong-target";
     await expect(run()).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("Wrong API target") as unknown,
+    });
+    expect(requests).toEqual(["GET /__load_target"]);
+  });
+  it("applies the same target guard to the visual demo", async () => {
+    scenario = "wrong-target";
+    await expect(run("visual")).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("Wrong API target") as unknown,
     });
