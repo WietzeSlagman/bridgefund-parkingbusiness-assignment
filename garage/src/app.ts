@@ -20,8 +20,8 @@ export const errorHandler: ErrorRequestHandler = (_err, _req, res, next) => {
   res.status(500).json({ error: "Internal server error" });
 };
 
-// No global body parser: a future webhook can install express.raw() before
-// any JSON parser, retaining the exact signed bytes.
+// No global body parser: the payment webhook needs the exact signed bytes
+// before any JSON parser runs.
 export function createApp(parking?: {
   pool: pg.Pool;
   config: ParkingConfig;

@@ -67,6 +67,11 @@ mark unavailable details as unknown rather than guessing.
 - Keep HTTP handling, business rules, and persistence understandable and testable
   without introducing unnecessary layers. Validate untrusted inputs and handle
   errors consistently without exposing secrets or internal details.
+- Add concise comments where they explain non-obvious intent, resolved ambiguity,
+  system or business design decisions, invariants, or integration limitations.
+  Explain why rather than restating what the code does; keep comments accurate and
+  update them when behavior changes. Do not use comments to settle unresolved
+  product decisions or replace specifications, tests, or clear code.
 - Use PostgreSQL constraints, transactions, and locking as appropriate for
   concurrent allocation, idempotency, and state transitions. Process-local locks
   alone cannot protect multiple requests or application instances.

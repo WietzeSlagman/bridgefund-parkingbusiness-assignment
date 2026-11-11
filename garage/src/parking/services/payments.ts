@@ -30,6 +30,7 @@ export function recordPayment(pool: pg.Pool, p: Payment, deadline: Deadline) {
     pool,
     async (_client, q) => {
       await lockBuilding(q, PILOT.code);
+      // A successful retry must be acknowledged even after checkout closes the session.
       if (p.status === "PAID") {
         const existing = (
           await q(
@@ -68,6 +69,7 @@ export function recordPayment(pool: pg.Pool, p: Payment, deadline: Deadline) {
         diagnostic("PAYMENT_SESSION_CLOSED", p.parkingSessionId, p.paymentId);
         return { kind: "session-closed" } as const;
       }
+      // The provider supplies no quote ID: an equal amount cannot prove attribution.
       const current = (
         await q(
           "SELECT quoted_amount FROM checkout_requests WHERE session_id=$1 AND is_current",
@@ -78,6 +80,7 @@ export function recordPayment(pool: pg.Pool, p: Payment, deadline: Deadline) {
         diagnostic("PAYMENT_AMOUNT_MISMATCH", p.parkingSessionId, p.paymentId);
         return { kind: "amount-mismatch" } as const;
       }
+      // The first recorded confirmation starts grace and consumes the current quote.
       await q(
         "INSERT INTO checkout_payments(payment_id,session_id,amount,confirmed_at) VALUES ($1,$2,$3,clock_timestamp())",
         [p.paymentId, p.parkingSessionId, p.amount.value],

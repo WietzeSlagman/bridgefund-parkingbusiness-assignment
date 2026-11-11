@@ -98,9 +98,11 @@ export function checkOut(
           now.getTime() >= p.confirmed_at.getTime() &&
           now.getTime() < p.confirmed_at.getTime() + 15 * 60_000,
       );
+      // A paid-total increase signals coverage, not attribution to this quote.
       const covered =
         binding.paid_at_quote !== null && paid > binding.paid_at_quote;
       let amount = Math.max(0, price.cents - paid);
+      // Keep an uncovered quote fixed even if the live tariff has increased.
       if (!inGrace && binding.quoted_amount !== null && !covered) {
         amount = binding.quoted_amount;
       }

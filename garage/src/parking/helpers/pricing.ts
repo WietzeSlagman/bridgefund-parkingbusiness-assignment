@@ -6,7 +6,10 @@ const amsterdamDate = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
-/** Price elapsed, check-in-anchored blocks by their Amsterdam start date. */
+/**
+ * Price elapsed, check-in-anchored blocks by their Amsterdam start date.
+ * Midnight does not split a block; DST affects its local date, not its duration.
+ */
 export function parkingPrice(
   category: "RESIDENT" | "CAR" | "MOTOR",
   checkedInAt: Date,
